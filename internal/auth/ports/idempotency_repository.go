@@ -1,3 +1,3 @@
-package domain
+package ports
 
 type IdempotencyRepository interface{}

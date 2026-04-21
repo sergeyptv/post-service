@@ -5,12 +5,10 @@ type User struct {
 	Username string
 	PassHash string
 	Email    string
-	Phone    string
 }
 
 type CreateUser struct {
 	Username string
 	PassHash string
 	Email    string
-	Phone    string
 }

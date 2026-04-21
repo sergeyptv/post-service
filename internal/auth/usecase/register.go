@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"github.com/jackc/pgx/v5"
 	"github.com/sergeyptv/post_service/internal/auth/domain"
 	"github.com/sergeyptv/post_service/internal/platform/logger"
 	"golang.org/x/crypto/bcrypt"
@@ -26,38 +27,27 @@ func (a *auth) Register(ctx context.Context, user domain.CreateUser) (string, er
 
 	user.PassHash = string(passHash)
 
-	userUuid, err := a.UserRepo.CreateUser(ctx, user)
-	if err != nil {
-		log.Error("Failed to create user", logger.Error(err))
-
-		return "", fmt.Errorf("%s: %w", op, err)
-	}
-
-	go func() {
-		for i := 0; i < 5; i++ {
-			err = a.Publisher.Publish(ctx, "user.registered", domain.UserRegisteredEvent{
-				Version:      "v1",
-				UserUuid:     userUuid,
-				UserEmail:    user.Email,
-				RegisteredAt: time.Now().Unix(),
-			})
-			if err != nil {
-				log.Error("Failed to publish new user", logger.Error(err))
-			} else {
-				return
-			}
-		}
-
-		err = a.Publisher.Publish(ctx, "user.registered.dlq", domain.UserRegisteredEvent{
-			Version:      "v1",
-			UserUuid:     userUuid,
-			UserEmail:    user.Email,
-			RegisteredAt: time.Now().Unix(),
-		})
+	err = a.txWrapper.Wrap(ctx, func(ctx context.Context, tx pgx.Tx) error {
+		userUuid, err := a.userRepo.CreateUser(ctx, tx, user)
 		if err != nil {
-			log.Error("Failed to publish new user", logger.Error(err))
+			return err
 		}
-	}()
+
+		_, err = a.outboxRepo.CreateEvent(ctx,
+			tx,
+			domain.UserRegisteredEvent{
+				Version:      "1.0",
+				UserUuid:     userUuid,
+				Username:     user.Username,
+				UserEmail:    user.Email,
+				RegisteredAt: time.Now().UTC(),
+			})
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
 
 	return userUuid, nil
 }

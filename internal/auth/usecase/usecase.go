@@ -1,26 +1,28 @@
 package usecase
 
 import (
-	"github.com/sergeyptv/post_service/internal/auth/domain"
+	"github.com/sergeyptv/post_service/internal/auth/ports"
 	"log/slog"
 )
 
 type auth struct {
 	log         *slog.Logger
-	UserRepo    domain.UserRepository
-	TokenRepo   domain.TokenRepository
-	Publisher   domain.EventPublisher
-	IdemRepo    domain.IdempotencyRepository
-	TokenSigner domain.TokenSigner
+	userRepo    ports.UserRepository
+	outboxRepo  ports.OutboxRepository
+	tokenRepo   ports.TokenRepository
+	idemRepo    ports.IdempotencyRepository
+	tokenSigner ports.TokenSigner
+	txWrapper   ports.TransactionWrapper
 }
 
-func NewAuthService(log *slog.Logger, userRepo domain.UserRepository, tokenRepo domain.TokenRepository, publisher domain.EventPublisher, idemRepo domain.IdempotencyRepository, tokenSigner domain.TokenSigner) *auth {
+func NewAuthService(log *slog.Logger, userRepo ports.UserRepository, outboxRepo ports.OutboxRepository, tokenRepo ports.TokenRepository, idemRepo ports.IdempotencyRepository, tokenSigner ports.TokenSigner, txWrapper ports.TransactionWrapper) *auth {
 	return &auth{
 		log:         log,
-		UserRepo:    userRepo,
-		TokenRepo:   tokenRepo,
-		Publisher:   publisher,
-		IdemRepo:    idemRepo,
-		TokenSigner: tokenSigner,
+		userRepo:    userRepo,
+		outboxRepo:  outboxRepo,
+		tokenRepo:   tokenRepo,
+		idemRepo:    idemRepo,
+		tokenSigner: tokenSigner,
+		txWrapper:   txWrapper,
 	}
 }

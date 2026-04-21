@@ -7,8 +7,10 @@ import (
 )
 
 type Config struct {
-	Addr  []string `env:"ADDR" env-prefix:"KAFKA_PRODUCER_" env-required`
-	Topic string   `env:"TOPIC" env-prefix:"KAFKA_PRODUCER_" env-required`
+	Addr            []string `env:"ADDR" env-prefix:"KAFKA_PRODUCER_" env-required`
+	Topic           string   `env:"TOPIC" env-prefix:"KAFKA_PRODUCER_" env-required`
+	RetryAttempt    int      `env:"RETRY_ATTEMPTS" env-prefix:"KAFKA_PRODUCER_" env-required`
+	RetryTimeoutSec float64  `env:"RETRY_TIMEOUT_SEC" env-prefix:"KAFKA_PRODUCER_" env-required`
 }
 
 type Producer struct {
@@ -24,7 +26,7 @@ func NewProducer(ctx context.Context, c Config) (*Producer, chan string, error) 
 		return nil, nil, err
 	}
 
-	eventDeliveryStatus := make(chan string, 0)
+	eventDeliveryStatus := make(chan string)
 
 	go func(ctx context.Context, eventDeliveryStatus chan string) {
 		for e := range producer.Events() {
