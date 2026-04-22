@@ -18,7 +18,7 @@ func (a *auth) Login(ctx context.Context, email, password string) (string, error
 
 	log.Info("log in user")
 
-	user, err := a.UserRepo.GetUserByEmail(ctx, email)
+	user, err := a.userRepo.GetUserByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, repository.ErrUserNotFound) {
 			log.Error("User not found", logger.Error(err))
@@ -38,7 +38,7 @@ func (a *auth) Login(ctx context.Context, email, password string) (string, error
 		return "", fmt.Errorf("%s: %w", op, err)
 	}
 
-	token, err := a.TokenSigner.NewToken(user.Uuid, user.Email)
+	token, err := a.tokenSigner.NewToken(user.Uuid, user.Email)
 	if err != nil {
 		log.Error("Failed to create token", logger.Error(err))
 

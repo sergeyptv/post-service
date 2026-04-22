@@ -3,6 +3,8 @@ package postgres
 import (
 	"context"
 	"fmt"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -13,6 +15,12 @@ type Config struct {
 	Port     string `env:"PORT" env-prefix:"POSTGRES_" env-required`
 	DBName   string `env:"DBNAME" env-prefix:"POSTGRES_" env-required`
 	// SslTls	string
+}
+
+type DBTX interface {
+	Exec(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error)
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 }
 
 type Pool struct {
@@ -39,5 +47,5 @@ func NewPool(ctx context.Context, c Config) (*Pool, error) {
 }
 
 func (p *Pool) Close() {
-	p.Close()
+	p.Db.Close()
 }

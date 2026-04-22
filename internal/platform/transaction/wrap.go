@@ -33,4 +33,6 @@ func (t *TxRunner) Wrap(ctx context.Context, fn func(ctx context.Context, tx pgx
 	if err != nil {
 		return err
 	}
+
+	return nil
 }

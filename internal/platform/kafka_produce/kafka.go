@@ -42,7 +42,7 @@ func NewProducer(ctx context.Context, c Config) (*Producer, chan string, error) 
 			select {
 			case <-ctx.Done():
 				eventDeliveryStatus <- fmt.Sprintf("Kafka producer context closed: %v\n", ctx.Err())
-				close(eventDeliveryStatus)
+				return
 
 			default:
 			}

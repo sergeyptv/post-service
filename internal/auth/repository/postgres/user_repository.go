@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/sergeyptv/post_service/internal/auth/domain"
 	"github.com/sergeyptv/post_service/internal/auth/repository"
@@ -21,13 +22,13 @@ func NewPostgresUserRepository(pool *postgres.Pool) *postgresUserRepository {
 	}
 }
 
-func (p *postgresUserRepository) CreateUser(ctx context.Context, user domain.CreateUser) (string, error) {
+func (p *postgresUserRepository) CreateUser(ctx context.Context, tx pgx.Tx, user domain.CreateUser) (string, error) {
 	const op = "repository.postgres.CreateUser"
 
 	var userUuid string
 
-	err := p.pool.Db.QueryRow(ctx,
-		"INSERT INTO auth.users (username, passHash, email) VALUES ($1, $2, $3, $4) RETURNING uuid",
+	err := tx.QueryRow(ctx,
+		"INSERT INTO auth.users (username, passHash, email) VALUES ($1, $2, $3) RETURNING uuid",
 		user.Username, user.PassHash, user.Email,
 	).Scan(&userUuid)
 	if err != nil {

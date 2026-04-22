@@ -27,13 +27,15 @@ func (a *auth) Register(ctx context.Context, user domain.CreateUser) (string, er
 
 	user.PassHash = string(passHash)
 
+	var userUuid string
+
 	err = a.txWrapper.Wrap(ctx, func(ctx context.Context, tx pgx.Tx) error {
-		userUuid, err := a.userRepo.CreateUser(ctx, tx, user)
-		if err != nil {
-			return err
+		userUuid, terr := a.userRepo.CreateUser(ctx, tx, user)
+		if terr != nil {
+			return terr
 		}
 
-		_, err = a.outboxRepo.CreateEvent(ctx,
+		_, terr = a.outboxRepo.CreateEvent(ctx,
 			tx,
 			domain.UserRegisteredEvent{
 				Version:      "1.0",
@@ -42,12 +44,17 @@ func (a *auth) Register(ctx context.Context, user domain.CreateUser) (string, er
 				UserEmail:    user.Email,
 				RegisteredAt: time.Now().UTC(),
 			})
-		if err != nil {
-			return err
+		if terr != nil {
+			return terr
 		}
 
 		return nil
 	})
+	if err != nil {
+		log.Error("Failed to add userinfo to db", logger.Error(err))
+
+		return "", fmt.Errorf("%s: %w", op, err)
+	}
 
 	return userUuid, nil
 }

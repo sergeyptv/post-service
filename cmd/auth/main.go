@@ -7,11 +7,10 @@ import (
 	"github.com/sergeyptv/post_service/internal/auth/repository/postgres"
 	"github.com/sergeyptv/post_service/internal/auth/repository/redis"
 	"github.com/sergeyptv/post_service/internal/auth/usecase"
-	"github.com/sergeyptv/post_service/internal/outbox/producer/kafka"
-	"github.com/sergeyptv/post_service/internal/platform/kafka_produce"
 	"github.com/sergeyptv/post_service/internal/platform/logger"
-	pPostgres "github.com/sergeyptv/post_service/internal/platform/postgres"
-	pRedis "github.com/sergeyptv/post_service/internal/platform/redis"
+	platformPostgres "github.com/sergeyptv/post_service/internal/platform/postgres"
+	platformRedis "github.com/sergeyptv/post_service/internal/platform/redis"
+	"github.com/sergeyptv/post_service/internal/platform/transaction"
 	"log/slog"
 )
 
@@ -31,26 +30,7 @@ func appRun(log *slog.Logger, cfg *config.Config) error {
 
 	jwtTokenSigner := jwt.NewJwtTokenSigner(cfg.Jwt)
 
-	p, deliveryStatus, err := kafka_produce.NewProducer(ctx, cfg.KafkaProducer)
-	if err != nil {
-		return err
-	}
-	defer p.Close()
-
-	go func(ctx context.Context, deliveryStatus chan string) {
-		for {
-			select {
-			case s := <-deliveryStatus:
-				log.Info("kafka delivery status: %s\n", s)
-			case <-ctx.Done():
-				log.Info("Program context exceeded: %s\n", ctx.Err())
-			}
-		}
-	}(ctx, deliveryStatus)
-
-	kafkaEventProducer := kafka.NewKafkaEventProducer(p)
-
-	pool, err := pPostgres.NewPool(ctx, cfg.Postgres)
+	pool, err := platformPostgres.NewPool(ctx, cfg.Postgres)
 	if err != nil {
 		return err
 	}
@@ -58,8 +38,9 @@ func appRun(log *slog.Logger, cfg *config.Config) error {
 
 	postgresUserRepository := postgres.NewPostgresUserRepository(pool)
 	postgresTokenRepository := postgres.NewPostgresTokenRepository(pool)
+	postgresOutboxRepository := postgres.NewPostgresOutboxRepository(pool)
 
-	client, err := pRedis.New(ctx, cfg.Redis)
+	client, err := platformRedis.New(ctx, cfg.Redis)
 	if err != nil {
 		return err
 	}
@@ -67,5 +48,7 @@ func appRun(log *slog.Logger, cfg *config.Config) error {
 
 	redisIdempotencyRepository := redis.NewRedisIdempotencyRepositry(client)
 
-	authService := usecase.NewAuthService(log, postgresUserRepository, postgresTokenRepository, kafkaEventProducer, redisIdempotencyRepository, jwtTokenSigner)
+	txWrapper := transaction.New(pool.Db)
+
+	authService := usecase.NewAuthService(log, postgresUserRepository, postgresOutboxRepository, postgresTokenRepository, redisIdempotencyRepository, jwtTokenSigner, txWrapper)
 }

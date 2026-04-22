@@ -2,17 +2,16 @@ package config
 
 import (
 	"github.com/ilyakaznacheev/cleanenv"
-	"github.com/sergeyptv/post_service/internal/auth/crypto/jwt"
 	"github.com/sergeyptv/post_service/internal/platform/config"
+	"github.com/sergeyptv/post_service/internal/platform/kafka_produce"
 	"github.com/sergeyptv/post_service/internal/platform/postgres"
-	"github.com/sergeyptv/post_service/internal/platform/redis"
 )
 
 type Config struct {
-	App      config.App
-	Jwt      jwt.Config
-	Postgres postgres.Config
-	Redis    redis.Config
+	App                config.App
+	WorkerFrequencySec int `env:"WORKER_FREQUENCY_SEC" env-prefix:"APP_" env-required`
+	Postgres           postgres.Config
+	KafkaProducer      kafka_produce.Config
 }
 
 func MustLoad() *Config {
