@@ -5,5 +5,5 @@ import (
 )
 
 type EventPublisher interface {
-	Publish(event []domain.UserRegisteredEvent) error
+	Publish(event domain.UserRegisteredEvent) error
 }

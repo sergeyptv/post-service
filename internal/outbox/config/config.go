@@ -10,6 +10,7 @@ import (
 type Config struct {
 	App                config.App
 	WorkerFrequencySec int `env:"WORKER_FREQUENCY_SEC" env-prefix:"APP_" env-required`
+	BatchSize          int `env:"BATCH_SIZE" env-prefix:"APP_" env-required`
 	Postgres           postgres.Config
 	KafkaProducer      kafka_produce.Config
 }

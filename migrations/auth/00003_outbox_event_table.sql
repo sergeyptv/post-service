@@ -7,17 +7,18 @@ CREATE TABLE IF NOT EXISTS outbox.event (
     user_uuid UUID NOT NULL ,
     username TEXT NOT NULL,
     user_email TEXT NOT NULL,
-    registered_at TIMESTAMPTZ NOT NULL,
-    status TEXT NOT NULL DEFAULT 'pending'
+    status TEXT NOT NULL DEFAULT 'pending',
+    registered_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 ALTER TABLE outbox.event ADD CONSTRAINT chk_event_status CHECK ( status IN ('pending', 'processing', 'sent', 'failed') );
 
-CREATE INDEX idx_event_status ON outbox.event (status) WHERE status = 'pending';
+CREATE INDEX idx_event_status_updated_at ON outbox.event (status, updated_at);
 
 
 -- +goose Down
-DROP INDEX IF EXISTS idx_event_status;
+DROP INDEX IF EXISTS idx_event_status_updated_at;
 
 ALTER TABLE outbox.event DROP CONSTRAINT IF EXISTS chk_event_status;
 

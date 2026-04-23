@@ -11,8 +11,8 @@ import (
 	platformPostgres "github.com/sergeyptv/post_service/internal/platform/postgres"
 	"github.com/sergeyptv/post_service/internal/platform/transaction"
 	"log/slog"
+	"math"
 	"math/rand"
-	"os"
 	"os/signal"
 	"syscall"
 	"time"
@@ -49,12 +49,17 @@ func appRun(log *slog.Logger, cfg *config.Config) error {
 	go func(ctx context.Context, deliveryStatus chan string) {
 		for {
 			select {
-			case s := <-deliveryStatus:
+			case s, ok := <-deliveryStatus:
+				if !ok {
+					log.Info("Kafka delivery status channel is closed\n")
+
+					return
+				}
+
 				log.Info("kafka delivery status: %s\n", s)
 			case <-ctx.Done():
 				log.Info("Program context exceeded: %s\n", ctx.Err())
 
-				close(deliveryStatus)
 				return
 			}
 		}
@@ -64,10 +69,13 @@ func appRun(log *slog.Logger, cfg *config.Config) error {
 
 	txWrapper := transaction.New(pool.Db)
 
-	outboxService := usecase.NewOutboxService(log, postgresOutboxRepository, kafkaEventProducer, txWrapper)
+	outboxService := usecase.NewOutboxService(log, cfg, postgresOutboxRepository, kafkaEventProducer, txWrapper)
 
 	backoff := time.Second
 	const maxBackoff = 30 * time.Second
+
+	ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
 
 	for {
 		select {
@@ -82,7 +90,7 @@ func appRun(log *slog.Logger, cfg *config.Config) error {
 
 			time.Sleep(backoff)
 
-			backoff *= 2
+			backoff = time.Duration(math.Min(float64(backoff*2), float64(maxBackoff)))
 			if backoff > maxBackoff {
 				backoff = maxBackoff
 			}
@@ -92,15 +100,9 @@ func appRun(log *slog.Logger, cfg *config.Config) error {
 
 		backoff = time.Second
 
-		time.Sleep(time.Duration(cfg.WorkerFrequencySec) * time.Second)
+		sleep := time.Duration(cfg.WorkerFrequencySec)*time.Second +
+			time.Duration(rand.Intn(500))*time.Millisecond
 
-		sleep := backoff + time.Duration(rand.Intn(500))*time.Millisecond
 		time.Sleep(sleep)
 	}
-
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
-	<-stop
-
-	return nil
 }

@@ -29,6 +29,8 @@ func NewProducer(ctx context.Context, c Config) (*Producer, chan string, error) 
 	eventDeliveryStatus := make(chan string)
 
 	go func(ctx context.Context, eventDeliveryStatus chan string) {
+		defer close(eventDeliveryStatus)
+
 		for e := range producer.Events() {
 			switch ev := e.(type) {
 			case *kafka.Message:

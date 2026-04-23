@@ -8,7 +8,6 @@ import (
 	"github.com/sergeyptv/post_service/internal/platform/logger"
 	"golang.org/x/crypto/bcrypt"
 	"log/slog"
-	"time"
 )
 
 func (a *auth) Register(ctx context.Context, user domain.CreateUser) (string, error) {
@@ -38,11 +37,10 @@ func (a *auth) Register(ctx context.Context, user domain.CreateUser) (string, er
 		_, terr = a.outboxRepo.CreateEvent(ctx,
 			tx,
 			domain.UserRegisteredEvent{
-				Version:      "1.0",
-				UserUuid:     userUuid,
-				Username:     user.Username,
-				UserEmail:    user.Email,
-				RegisteredAt: time.Now().UTC(),
+				Version:   "1.0",
+				UserUuid:  userUuid,
+				Username:  user.Username,
+				UserEmail: user.Email,
 			})
 		if terr != nil {
 			return terr
