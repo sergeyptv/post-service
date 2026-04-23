@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
-	"time"
 )
 
 type Config struct {
@@ -13,8 +12,8 @@ type Config struct {
 }
 
 type Consumer struct {
-	Kafka  *kafka.Consumer
 	Config Config
+	Kafka  *kafka.Consumer
 	Msgs   chan *kafka.Message
 }
 
@@ -41,20 +40,5 @@ func NewConsumer(ctx context.Context, c Config) (*Consumer, error) {
 func (p *Consumer) Close() {
 	if err := p.Kafka.Close(); err != nil {
 		fmt.Printf("Error close kafka_consume consumer: %s\n", err)
-	}
-}
-
-func (p *Consumer) Consume(ctx context.Context) error {
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-
-		default:
-			msg, err := p.Kafka.ReadMessage(time.Second)
-			if err == nil {
-				p.Msgs <- msg
-			}
-		}
 	}
 }

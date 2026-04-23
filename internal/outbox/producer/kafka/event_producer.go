@@ -27,56 +27,31 @@ func (k *kafkaEventProducer) Publish(event domain.UserRegisteredEvent) error {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	produce := func() error {
-		err = k.producer.Kafka.Produce(&kafka.Message{
-			TopicPartition: kafka.TopicPartition{
-				Topic:     &k.producer.Config.Topic,
-				Partition: kafka.PartitionAny,
-			},
-			Key:   []byte(event.UserUuid),
-			Value: eventBytes,
-		}, nil)
+	deliveryChan := make(chan kafka.Event, 1)
 
-		if err != nil {
-			return err
-		}
+	err = k.producer.Kafka.Produce(&kafka.Message{
+		TopicPartition: kafka.TopicPartition{
+			Topic:     &k.producer.Config.Topic,
+			Partition: kafka.PartitionAny,
+		},
+		Key:   []byte(event.Uuid),
+		Value: eventBytes,
+	}, deliveryChan)
 
-		return nil
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	err = produce()
-	if err != nil {
-		retryTimeout := k.producer.Config.RetryTimeoutSec
-		published := false
+	select {
+	case e := <-deliveryChan:
+		m := e.(*kafka.Message)
 
-		for i := 1; i <= k.producer.Config.RetryAttempt; i++ {
-			retryTimeout *= 2
-			time.Sleep(time.Duration(retryTimeout) * time.Second)
-
-			err = produce()
-			if err == nil {
-				published = true
-
-				break
-			}
+		if m.TopicPartition.Error != nil {
+			return m.TopicPartition.Error
 		}
 
-		if !published {
-			topicDlq := k.producer.Config.Topic + ".dlq"
-
-			err = k.producer.Kafka.Produce(&kafka.Message{
-				TopicPartition: kafka.TopicPartition{
-					Topic:     &topicDlq,
-					Partition: kafka.PartitionAny,
-				},
-				Key:   []byte(event.UserUuid),
-				Value: eventBytes,
-			}, nil)
-
-			if err != nil {
-				return fmt.Errorf("%s: %w", op, err)
-			}
-		}
+	case <-time.After(5 * time.Second):
+		return fmt.Errorf("%s: delivery timeout", op)
 	}
 
 	return nil

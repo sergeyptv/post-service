@@ -8,6 +8,6 @@ import (
 
 type OutboxRepository interface {
 	GetPending(ctx context.Context, tx postgres.DBTX, limit int) ([]domain.UserRegisteredEvent, error)
-	MarkSent(ctx context.Context, eventUuid string) error
-	MarkFailed(ctx context.Context, eventUuid string) error
+	MarkSent(ctx context.Context, eventUuids []string) error
+	MarkFailed(ctx context.Context, eventUuids []string) error
 }

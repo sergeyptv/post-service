@@ -40,30 +40,11 @@ func appRun(log *slog.Logger, cfg *config.Config) error {
 
 	postgresOutboxRepository := postgres.NewPostgresOutboxRepository(pool.Db)
 
-	p, deliveryStatus, err := kafka_produce.NewProducer(ctx, cfg.KafkaProducer)
+	p, err := kafka_produce.NewProducer(ctx, cfg.KafkaProducer)
 	if err != nil {
 		return err
 	}
 	defer p.Close()
-
-	go func(ctx context.Context, deliveryStatus chan string) {
-		for {
-			select {
-			case s, ok := <-deliveryStatus:
-				if !ok {
-					log.Info("Kafka delivery status channel is closed\n")
-
-					return
-				}
-
-				log.Info("kafka delivery status: %s\n", s)
-			case <-ctx.Done():
-				log.Info("Program context exceeded: %s\n", ctx.Err())
-
-				return
-			}
-		}
-	}(ctx, deliveryStatus)
 
 	kafkaEventProducer := kafka.NewKafkaEventProducer(p)
 
@@ -100,8 +81,7 @@ func appRun(log *slog.Logger, cfg *config.Config) error {
 
 		backoff = time.Second
 
-		sleep := time.Duration(cfg.WorkerFrequencySec)*time.Second +
-			time.Duration(rand.Intn(500))*time.Millisecond
+		sleep := time.Duration(cfg.WorkerFrequencySec)*time.Second + time.Duration(rand.Intn(500))*time.Millisecond
 
 		time.Sleep(sleep)
 	}

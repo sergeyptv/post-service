@@ -23,7 +23,6 @@ func NewPostgresOutboxRepository(db postgres.DBTX) *postgresOutboxRepository {
 func (p *postgresOutboxRepository) GetPending(ctx context.Context, tx postgres.DBTX, limit int) ([]domain.UserRegisteredEvent, error) {
 	const op = "repository.postgres.GetPending"
 
-	var eventUuids []string
 	var event domain.UserRegisteredEvent
 	var events []domain.UserRegisteredEvent
 
@@ -32,8 +31,14 @@ func (p *postgresOutboxRepository) GetPending(ctx context.Context, tx postgres.D
             	WHERE uuid IN (
             		SELECT uuid
             		FROM outbox.event
-            		WHERE status = 'pending'
-            			OR (status = 'processing' AND updated_at < now() - interval '30 seconds')
+            		WHERE (
+            		    status = 'pending' 
+            		    AND attempts < 5 
+            		    AND (next_retry_at IS NULL OR next_retry_at <= now())
+            		OR (
+            		    status = 'processing' 
+            		    AND updated_at < now() - interval '30 seconds'
+            		)
             		FOR UPDATE SKIP LOCKED
             		LIMIT $1
             	)
@@ -54,7 +59,6 @@ func (p *postgresOutboxRepository) GetPending(ctx context.Context, tx postgres.D
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
 
-		eventUuids = append(eventUuids, event.Uuid)
 		events = append(events, event)
 		event = domain.UserRegisteredEvent{}
 	}
@@ -67,12 +71,12 @@ func (p *postgresOutboxRepository) GetPending(ctx context.Context, tx postgres.D
 	return events, nil
 }
 
-func (p *postgresOutboxRepository) MarkSent(ctx context.Context, eventUuid string) error {
+func (p *postgresOutboxRepository) MarkSent(ctx context.Context, eventUuids []string) error {
 	const op = "repository.postgres.MarkSent"
 
 	_, err := p.db.Exec(ctx,
-		"UPDATE outbox.event SET status = 'sent' WHERE uuid = $1",
-		eventUuid)
+		"UPDATE outbox.event SET status = 'sent', updated_at = now() WHERE uuid = ANY($1)",
+		eventUuids)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
@@ -80,12 +84,14 @@ func (p *postgresOutboxRepository) MarkSent(ctx context.Context, eventUuid strin
 	return nil
 }
 
-func (p *postgresOutboxRepository) MarkFailed(ctx context.Context, eventUuid string) error {
+func (p *postgresOutboxRepository) MarkFailed(ctx context.Context, eventUuids []string) error {
 	const op = "repository.postgres.MarkFailed"
 
 	_, err := p.db.Exec(ctx,
-		"UPDATE outbox.event SET status = 'failed' WHERE uuid = $1",
-		eventUuid)
+		`UPDATE outbox.event 
+				SET status = 'pending', updated_at = now(), attempts = attempts + 1, next_retry_at = now() + interval '10 seconds'
+				WHERE uuid = ANY($1)`,
+		eventUuids)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
