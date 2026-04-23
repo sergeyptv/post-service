@@ -36,32 +36,33 @@ func (o *outbox) Worker(ctx context.Context) error {
 		return nil
 	}
 
-	publishedEventsMap := make(map[string]bool)
+	publishEventsSuccess := make([]string, 0, len(events))
+	publishEventsFailed := make([]string, 0, len(events))
 
 	for _, event := range events {
 		err = o.publisher.Publish(event)
 		if err != nil {
-			publishedEventsMap[event.Uuid] = false
+			publishEventsFailed = append(publishEventsFailed, event.Uuid)
 		} else {
-			publishedEventsMap[event.Uuid] = true
+			publishEventsSuccess = append(publishEventsSuccess, event.Uuid)
 		}
 	}
 
-	for eventUuid, published := range publishedEventsMap {
-		if published {
-			terr := o.outboxRepository.MarkSent(ctx, eventUuid)
-			if terr != nil {
-				log.Error("Failed to mark events sent", logger.Error(terr))
+	if len(publishEventsSuccess) > 0 {
+		err = o.outboxRepository.MarkSent(ctx, publishEventsSuccess)
+		if err != nil {
+			log.Error("Failed to mark events sent", logger.Error(err))
 
-				return fmt.Errorf("%s: %w", op, terr)
-			}
-		} else {
-			terr := o.outboxRepository.MarkFailed(ctx, eventUuid)
-			if terr != nil {
-				log.Error("Failed to mark events failed", logger.Error(terr))
+			return fmt.Errorf("%s: %w", op, err)
+		}
+	}
 
-				return fmt.Errorf("%s: %w", op, terr)
-			}
+	if len(publishEventsFailed) > 0 {
+		err = o.outboxRepository.MarkFailed(ctx, publishEventsFailed)
+		if err != nil {
+			log.Error("Failed to mark events failed", logger.Error(err))
+
+			return fmt.Errorf("%s: %w", op, err)
 		}
 	}
 
