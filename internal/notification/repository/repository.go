@@ -3,5 +3,6 @@ package repository
 import "errors"
 
 var (
-	ErrEventAlreadySuccess = errors.New("event status already success")
+	ErrEventStatusProcessing = errors.New("event status processing")
+	ErrEventAlreadySuccess   = errors.New("event status already success")
 )

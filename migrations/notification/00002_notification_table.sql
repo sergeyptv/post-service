@@ -3,6 +3,7 @@ CREATE EXTENSION IF NOT EXISTS pg_uuidv7;
 
 CREATE TABLE IF NOT EXISTS notification.processed_event (
     uuid UUID PRIMARY KEY,
+    event JSONB NOT NULL,
     status TEXT NOT NULL DEFAULT 'processing',
     updated_at TIMESTAMPTZ DEFAULT now()
 );
