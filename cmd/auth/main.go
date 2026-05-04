@@ -40,15 +40,7 @@ func appRun(log *slog.Logger, cfg *config.Config) error {
 	postgresTokenRepository := postgres.NewPostgresTokenRepository(pool)
 	postgresOutboxRepository := postgres.NewPostgresOutboxRepository(pool)
 
-	client, err := platformRedis.New(ctx, cfg.Redis)
-	if err != nil {
-		return err
-	}
-	defer client.Close()
-
-	redisIdempotencyRepository := redis.NewRedisIdempotencyRepositry(client)
-
 	txWrapper := transaction.New(pool.Db)
 
-	authService := usecase.NewAuthService(log, postgresUserRepository, postgresOutboxRepository, postgresTokenRepository, redisIdempotencyRepository, jwtTokenSigner, txWrapper)
+	authService := usecase.NewAuthService(log, postgresUserRepository, postgresOutboxRepository, postgresTokenRepository, jwtTokenSigner, txWrapper)
 }

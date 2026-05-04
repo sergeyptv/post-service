@@ -45,6 +45,8 @@ func (a *auth) Login(ctx context.Context, email, password string) (string, error
 		return "", fmt.Errorf("%s: %w", op, err)
 	}
 
+	tokenUuid, err := a.tokenRepo.CreateToken(ctx, user.Uuid, token)
+
 	log.Info("user logged in successfully")
 
 	return token, nil
