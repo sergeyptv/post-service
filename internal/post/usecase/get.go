@@ -10,12 +10,12 @@ import (
 	"log/slog"
 )
 
-func (p *post) Get(ctx context.Context, postUuid string) (domain.Post, error) {
+func (p *post) Get(ctx context.Context, user domain.User, postUuid string) (domain.Post, error) {
 	const op = "usecase.Get"
 
 	log := p.log.With(slog.String("op", op))
 
-	post, err := p.postRepository.Get(ctx, postUuid)
+	post, err := p.postRepository.Get(ctx, user, postUuid)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			log.Error("Failed to get unknown post", logger.Error(err))

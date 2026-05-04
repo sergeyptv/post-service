@@ -38,7 +38,7 @@ func (a *auth) Login(ctx context.Context, email, password string) (string, error
 		return "", fmt.Errorf("%s: %w", op, err)
 	}
 
-	token, err := a.tokenSigner.NewToken(user.Uuid, user.Email)
+	token, err := a.tokenSigner.NewToken(user.Uuid, user.Username, user.Email)
 	if err != nil {
 		log.Error("Failed to create token", logger.Error(err))
 

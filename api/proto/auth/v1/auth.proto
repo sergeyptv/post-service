@@ -1,0 +1,22 @@
+syntax = 'proto3';
+
+// auth.v1 содержит API для получения актуального jwt public key
+package auth.v1;
+
+option go_package="github.com/sergeyptv/post_service/api/proto/auth/v1/auth.proto;authV1";
+
+// AuthService предоставляет API для получения актуального jwt public key
+service AuthService {
+  // GetPublicKey возвращает актуальный jwt public key
+  rpc GetPublicKey(GetPublicKeyRequest) returns (GetPublicKeyResponse);
+}
+
+// GetPublicKeyRequest - запрос на получение jwt public key
+message GetPublicKeyRequest {}
+
+// GetPublicKeyResponse - возвращает актуальный jwt public key
+message GetPublicKeyResponse {
+  string key_data = 1;
+  string format = 2; // "DER"
+  string algorithm = 3; // "RS256
+}

@@ -1,7 +1,9 @@
 package jwt
 
 import (
+	"crypto/rsa"
 	"errors"
+	"github.com/sergeyptv/post_service/internal/platform/cache"
 	"sync"
 	"time"
 )
@@ -12,72 +14,44 @@ var (
 )
 
 type JwtCache interface {
-	Set(publicKey string, ttl time.Duration)
-	Get() (string, error)
-	Stop()
+	Set(publicKey *rsa.PublicKey)
+	Get() (*rsa.PublicKey, error)
 }
 
 type inMemoryCache struct {
 	mu        sync.RWMutex
-	publicKey string
+	publicKey *rsa.PublicKey
 	ttl       time.Time
-	syncChan  chan struct{}
+	keyTtl    time.Duration
 }
 
-func NewInMemoryCache(keyLivingTime time.Duration) *inMemoryCache {
-	cache := inMemoryCache{
-		syncChan: make(chan struct{}),
+func NewInMemoryCache(c cache.Config) *inMemoryCache {
+	memCache := inMemoryCache{
+		keyTtl: c.Ttl,
 	}
 
-	go cache.cleanMemory(keyLivingTime)
-
-	return &cache
+	return &memCache
 }
 
-func (c *inMemoryCache) Set(publicKey string, ttl time.Duration) {
+func (c *inMemoryCache) Set(publicKey *rsa.PublicKey) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	c.publicKey = publicKey
-	c.ttl = time.Now().Add(ttl)
+	c.ttl = time.Now().Add(c.keyTtl)
 }
 
-func (c *inMemoryCache) Get() (string, error) {
+func (c *inMemoryCache) Get() (*rsa.PublicKey, error) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
-	if c.publicKey == "" {
-		return "", ErrPublicKeyNotSet
+	if c.publicKey == nil {
+		return nil, ErrPublicKeyNotSet
 	}
 
 	if c.ttl.Before(time.Now()) {
-		return "", ErrPublicKeyTtlExpired
+		return c.publicKey, ErrPublicKeyTtlExpired
 	}
 
 	return c.publicKey, nil
-}
-
-func (c *inMemoryCache) Stop() {
-	close(c.syncChan)
-}
-
-func (c *inMemoryCache) cleanMemory(keyLivingTime time.Duration) {
-	ticker := time.NewTicker(keyLivingTime)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ticker.C:
-			c.mu.Lock()
-
-			if c.ttl.Before(time.Now()) {
-				c.publicKey = ""
-			}
-
-			c.mu.Unlock()
-
-		case <-c.syncChan:
-			return
-		}
-	}
 }

@@ -10,12 +10,12 @@ import (
 	"log/slog"
 )
 
-func (p *post) Update(ctx context.Context, post domain.Post) error {
+func (p *post) Update(ctx context.Context, user domain.User, post domain.Post) error {
 	const op = "usecase.Update"
 
 	log := p.log.With(slog.String("op", op))
 
-	err := p.postRepository.Update(ctx, post)
+	err := p.postRepository.Update(ctx, user, post)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			log.Error("Failed to update unknown post", logger.Error(err))

@@ -6,9 +6,9 @@ import (
 )
 
 type PostRepository interface {
-	Create(ctx context.Context, post domain.Post) (string, error)
-	Get(ctx context.Context, postUuid string) (domain.Post, error)
-	List(ctx context.Context, username string) ([]string, error)
-	Update(ctx context.Context, post domain.Post) error
-	Delete(ctx context.Context, postUuid string) error
+	Create(ctx context.Context, user domain.User, post domain.Post) (string, error)
+	Get(ctx context.Context, user domain.User, postUuid string) (domain.Post, error)
+	List(ctx context.Context, user domain.User) ([]string, error)
+	Update(ctx context.Context, user domain.User, post domain.Post) error
+	Delete(ctx context.Context, user domain.User, postUuid string) error
 }

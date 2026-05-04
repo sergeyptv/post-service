@@ -8,12 +8,12 @@ import (
 	"log/slog"
 )
 
-func (p *post) Create(ctx context.Context, post domain.Post) (string, error) {
+func (p *post) Create(ctx context.Context, user domain.User, post domain.Post) (string, error) {
 	const op = "usecase.Create"
 
 	log := p.log.With(slog.String("op", op))
 
-	postUuid, err := p.postRepository.Create(ctx, post)
+	postUuid, err := p.postRepository.Create(ctx, user, post)
 	if err != nil {
 		log.Error("Failed to create new post", logger.Error(err))
 

@@ -10,12 +10,12 @@ import (
 	"log/slog"
 )
 
-func (p *post) Delete(ctx context.Context, postUuid string) error {
+func (p *post) Delete(ctx context.Context, user domain.User, postUuid string) error {
 	const op = "usecase.Delete"
 
 	log := p.log.With(slog.String("op", op))
 
-	err := p.postRepository.Delete(ctx, postUuid)
+	err := p.postRepository.Delete(ctx, user, postUuid)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			log.Error("Failed to delete unknown post", logger.Error(err))

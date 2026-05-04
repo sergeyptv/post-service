@@ -1,5 +1,5 @@
 package ports
 
 type TokenSigner interface {
-	NewToken(userUuid, userEmail string) (string, error)
+	NewToken(userUuid, username, userEmail string) (string, error)
 }
