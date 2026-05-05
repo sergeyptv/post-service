@@ -22,14 +22,14 @@ func NewPostgresUserRepository(pool *postgres.Pool) *postgresUserRepository {
 	}
 }
 
-func (p *postgresUserRepository) CreateUser(ctx context.Context, tx pgx.Tx, user domain.CreateUser) (string, error) {
+func (p *postgresUserRepository) CreateUser(ctx context.Context, tx pgx.Tx, user domain.InputUser) (string, error) {
 	const op = "repository.postgres.CreateUser"
 
 	var userUuid string
 
 	err := tx.QueryRow(ctx,
 		"INSERT INTO auth.users (username, passHash, email) VALUES ($1, $2, $3) RETURNING uuid",
-		user.Username, user.PassHash, user.Email,
+		user.Username, user.Password, user.Email,
 	).Scan(&userUuid)
 	if err != nil {
 		var pgErr *pgconn.PgError

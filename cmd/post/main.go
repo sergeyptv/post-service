@@ -57,7 +57,7 @@ func appRun(log *slog.Logger, cfg *config.Config) error {
 
 	postUsecase := usecase.NewPostUsecase(log, postgresPostRepository)
 
-	handler := postHttp.NewHandler(log, postUsecase, jwtParser)
+	handler := postHttp.NewHandler(postUsecase, jwtParser)
 	router := postHttp.NewRouter(handler)
 
 	postServer := httpserver.New(router.Mux, cfg.Server)

@@ -46,10 +46,10 @@ func (a *authClient) GetPublicKey(ctx context.Context) (*rsa.PublicKey, error) {
 	}
 }
 
-func (a *authClient) parseDer(keyData string) (*rsa.PublicKey, error) {
+func (a *authClient) parseDer(keyData []byte) (*rsa.PublicKey, error) {
 	const op = "auth.client.parseDer"
 
-	pubInterface, err := x509.ParsePKIXPublicKey([]byte(keyData))
+	pubInterface, err := x509.ParsePKIXPublicKey(keyData)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}

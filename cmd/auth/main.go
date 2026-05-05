@@ -2,16 +2,25 @@ package main
 
 import (
 	"context"
+	"errors"
+	authV1 "github.com/sergeyptv/post_service/api/pkg/proto/auth/v1"
 	"github.com/sergeyptv/post_service/internal/auth/config"
 	"github.com/sergeyptv/post_service/internal/auth/crypto/jwt"
+	"github.com/sergeyptv/post_service/internal/auth/delivery/grpc"
+	authHttp "github.com/sergeyptv/post_service/internal/auth/delivery/http"
 	"github.com/sergeyptv/post_service/internal/auth/repository/postgres"
-	"github.com/sergeyptv/post_service/internal/auth/repository/redis"
 	"github.com/sergeyptv/post_service/internal/auth/usecase"
+	"github.com/sergeyptv/post_service/internal/platform/grpcServer"
+	"github.com/sergeyptv/post_service/internal/platform/httpserver"
 	"github.com/sergeyptv/post_service/internal/platform/logger"
 	platformPostgres "github.com/sergeyptv/post_service/internal/platform/postgres"
-	platformRedis "github.com/sergeyptv/post_service/internal/platform/redis"
 	"github.com/sergeyptv/post_service/internal/platform/transaction"
 	"log/slog"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 )
 
 func main() {
@@ -42,5 +51,43 @@ func appRun(log *slog.Logger, cfg *config.Config) error {
 
 	txWrapper := transaction.New(pool.Db)
 
-	authService := usecase.NewAuthService(log, postgresUserRepository, postgresOutboxRepository, postgresTokenRepository, jwtTokenSigner, txWrapper)
+	authUsecase := usecase.NewAuthUsecase(log, postgresUserRepository, postgresOutboxRepository, postgresTokenRepository, jwtTokenSigner, txWrapper)
+
+	httpHandler := authHttp.NewHandler(authUsecase)
+	httpRouter := authHttp.NewRouter(httpHandler)
+
+	authHttpServer := httpserver.New(httpRouter.Mux, cfg.HttpServer)
+	defer authHttpServer.Close()
+
+	grpcHandler := grpc.NewHandler(cfg.Jwt)
+
+	grpcGrpcServer, err := grpcServer.NewServer(cfg.GrpcServer)
+	if err != nil {
+		return err
+	}
+	defer grpcGrpcServer.Close()
+
+	authV1.RegisterAuthServiceServer(grpcGrpcServer.Server, grpcHandler)
+
+	stop := make(chan os.Signal)
+	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
+
+	go func() {
+		if herr := authHttpServer.Start(); herr != nil && !errors.Is(herr, http.ErrServerClosed) {
+			log.Error("http server failed", logger.Error(herr))
+		}
+	}()
+
+	go func() {
+		if gerr := grpcGrpcServer.Serve(); gerr != nil {
+			log.Error("grpc server failed", logger.Error(gerr))
+		}
+	}()
+
+	<-stop
+
+	ctxShutdown, cancelShutdown := context.WithTimeout(ctx, 5*time.Second)
+	defer cancelShutdown()
+
+	return authHttpServer.Shutdown(ctxShutdown)
 }

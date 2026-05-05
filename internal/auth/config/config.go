@@ -7,16 +7,20 @@ import (
 	"github.com/ilyakaznacheev/cleanenv"
 	authJwt "github.com/sergeyptv/post_service/internal/auth/crypto/jwt"
 	"github.com/sergeyptv/post_service/internal/platform/config"
+	"github.com/sergeyptv/post_service/internal/platform/grpcServer"
+	"github.com/sergeyptv/post_service/internal/platform/httpserver"
 	"github.com/sergeyptv/post_service/internal/platform/postgres"
 	"github.com/sergeyptv/post_service/internal/platform/redis"
 	"os"
 )
 
 type Config struct {
-	App      config.App
-	Jwt      authJwt.Config
-	Postgres postgres.Config
-	Redis    redis.Config
+	App        config.App
+	Jwt        authJwt.Config
+	Postgres   postgres.Config
+	Redis      redis.Config
+	HttpServer httpserver.Config
+	GrpcServer grpcServer.Config
 }
 
 func MustLoad() *Config {

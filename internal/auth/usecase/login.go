@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"github.com/sergeyptv/post_service/internal/auth/domain"
@@ -15,8 +16,6 @@ func (a *auth) Login(ctx context.Context, email, password string) (string, error
 	const op = "usecase.Login"
 
 	log := a.log.With(slog.String("op", op), slog.String("email", email))
-
-	log.Info("log in user")
 
 	user, err := a.userRepo.GetUserByEmail(ctx, email)
 	if err != nil {
@@ -35,7 +34,7 @@ func (a *auth) Login(ctx context.Context, email, password string) (string, error
 	if err != nil {
 		log.Error("Invalid credentials", logger.Error(err))
 
-		return "", fmt.Errorf("%s: %w", op, err)
+		return "", fmt.Errorf("%s: %w", op, domain.ErrInvalidCredentials)
 	}
 
 	token, err := a.tokenSigner.NewToken(user.Uuid, user.Username, user.Email)
@@ -45,9 +44,29 @@ func (a *auth) Login(ctx context.Context, email, password string) (string, error
 		return "", fmt.Errorf("%s: %w", op, err)
 	}
 
-	tokenUuid, err := a.tokenRepo.CreateToken(ctx, user.Uuid, token)
+	jti, err := a.tokenRepo.GetToken(ctx, user.Uuid)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			_, err = a.tokenRepo.CreateToken(ctx, user.Uuid, token)
+			if err != nil {
+				log.Error("Failed to save token to db", logger.Error(err))
 
-	log.Info("user logged in successfully")
+				return "", fmt.Errorf("%s: %w", op, err)
+			}
+
+			return token, nil
+		}
+		log.Error("Failed to get token from db", logger.Error(err))
+
+		return "", fmt.Errorf("%s: %w", op, err)
+	}
+
+	err = a.tokenRepo.UpdateToken(ctx, jti, token)
+	if err != nil {
+		log.Error("Failed to update token in db", logger.Error(err))
+
+		return "", fmt.Errorf("%s: %w", op, err)
+	}
 
 	return token, nil
 }

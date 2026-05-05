@@ -10,21 +10,19 @@ import (
 	"log/slog"
 )
 
-func (a *auth) Register(ctx context.Context, user domain.CreateUser) (string, error) {
+func (a *auth) Register(ctx context.Context, user domain.InputUser) (string, error) {
 	const op = "usecase.Register"
 
 	log := a.log.With(slog.String("op", op), slog.String("email", user.Email))
 
-	log.Info("registering user")
-
-	passHash, err := bcrypt.GenerateFromPassword([]byte(user.PassHash), bcrypt.DefaultCost)
+	passHash, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
 		log.Error("Failed to generate password hash", logger.Error(err))
 
 		return "", fmt.Errorf("%s: %w", op, err)
 	}
 
-	user.PassHash = string(passHash)
+	user.Password = string(passHash)
 
 	var userUuid string
 

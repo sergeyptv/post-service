@@ -63,7 +63,7 @@ func (*GetPublicKeyRequest) Descriptor() ([]byte, []int) {
 // GetPublicKeyResponse - возвращает актуальный jwt public key
 type GetPublicKeyResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	KeyData       string                 `protobuf:"bytes,1,opt,name=key_data,json=keyData,proto3" json:"key_data,omitempty"`
+	KeyData       []byte                 `protobuf:"bytes,1,opt,name=key_data,json=keyData,proto3" json:"key_data,omitempty"`
 	Format        string                 `protobuf:"bytes,2,opt,name=format,proto3" json:"format,omitempty"`       // "DER"
 	Algorithm     string                 `protobuf:"bytes,3,opt,name=algorithm,proto3" json:"algorithm,omitempty"` // "RS256
 	unknownFields protoimpl.UnknownFields
@@ -100,11 +100,11 @@ func (*GetPublicKeyResponse) Descriptor() ([]byte, []int) {
 	return file_auth_v1_auth_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *GetPublicKeyResponse) GetKeyData() string {
+func (x *GetPublicKeyResponse) GetKeyData() []byte {
 	if x != nil {
 		return x.KeyData
 	}
-	return ""
+	return nil
 }
 
 func (x *GetPublicKeyResponse) GetFormat() string {
@@ -128,7 +128,7 @@ const file_auth_v1_auth_proto_rawDesc = "" +
 	"\x12auth/v1/auth.proto\x12\aauth.v1\"\x15\n" +
 	"\x13GetPublicKeyRequest\"g\n" +
 	"\x14GetPublicKeyResponse\x12\x19\n" +
-	"\bkey_data\x18\x01 \x01(\tR\akeyData\x12\x16\n" +
+	"\bkey_data\x18\x01 \x01(\fR\akeyData\x12\x16\n" +
 	"\x06format\x18\x02 \x01(\tR\x06format\x12\x1c\n" +
 	"\talgorithm\x18\x03 \x01(\tR\talgorithm2Z\n" +
 	"\vAuthService\x12K\n" +

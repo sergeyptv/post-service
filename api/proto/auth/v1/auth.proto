@@ -16,7 +16,7 @@ message GetPublicKeyRequest {}
 
 // GetPublicKeyResponse - возвращает актуальный jwt public key
 message GetPublicKeyResponse {
-  string key_data = 1;
+  bytes key_data = 1;
   string format = 2; // "DER"
   string algorithm = 3; // "RS256
 }

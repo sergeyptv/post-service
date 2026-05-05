@@ -5,19 +5,16 @@ import (
 	"errors"
 	"github.com/sergeyptv/post_service/internal/post/domain"
 	"github.com/sergeyptv/post_service/internal/post/ports"
-	"log/slog"
 	"net/http"
 )
 
 type handler struct {
-	log       *slog.Logger
 	usecase   ports.Usecase
 	jwtParser ports.JwtTokenParser
 }
 
-func NewHandler(log *slog.Logger, usecase ports.Usecase, jwtParser ports.JwtTokenParser) *handler {
+func NewHandler(usecase ports.Usecase, jwtParser ports.JwtTokenParser) *handler {
 	return &handler{
-		log:       log,
 		usecase:   usecase,
 		jwtParser: jwtParser,
 	}
