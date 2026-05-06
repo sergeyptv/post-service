@@ -33,7 +33,7 @@ func (s *Server) Serve() error {
 	return s.Server.Serve(s.lis)
 }
 
-func (s *Server) Close() error {
+func (s *Server) CloseListener() error {
 	return s.lis.Close()
 }
 

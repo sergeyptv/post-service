@@ -116,6 +116,7 @@ func (j *jwtTokenParser) Parse(ctx context.Context, jwtToken string) (domain.Use
 	if err != nil {
 		return domain.User{}, fmt.Errorf("%s: %w", op, err)
 	}
+
 	if !token.Valid {
 		return domain.User{}, fmt.Errorf("%s: %w", op, ErrTokenInvalid)
 	}

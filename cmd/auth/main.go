@@ -65,7 +65,6 @@ func appRun(log *slog.Logger, cfg *config.Config) error {
 	if err != nil {
 		return err
 	}
-	defer grpcGrpcServer.Close()
 
 	authV1.RegisterAuthServiceServer(grpcGrpcServer.Server, grpcHandler)
 
@@ -90,5 +89,7 @@ func appRun(log *slog.Logger, cfg *config.Config) error {
 	defer cancelShutdown()
 
 	grpcGrpcServer.Shutdown()
-	return authHttpServer.Shutdown(ctxShutdown)
+	grpcGrpcServer.CloseListener()
+	authHttpServer.Shutdown(ctxShutdown)
+	return authHttpServer.Close()
 }

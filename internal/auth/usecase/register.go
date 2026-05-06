@@ -12,19 +12,19 @@ import (
 	"log/slog"
 )
 
-func (a *auth) Register(ctx context.Context, user domain.User) (string, error) {
+func (a *auth) Register(ctx context.Context, user domain.User, password string) (string, error) {
 	const op = "usecase.Register"
 
 	log := a.log.With(slog.String("op", op), slog.String("email", user.Email))
 
-	passHash, err := bcrypt.GenerateFromPassword([]byte(user.PassHash), bcrypt.DefaultCost)
+	passwordHash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		log.Error("Failed to generate password hash", logger.Error(err))
 
 		return "", fmt.Errorf("%s: %w", op, err)
 	}
 
-	user.PassHash = string(passHash)
+	user.PasswordHash = string(passwordHash)
 
 	var userUuid string
 
@@ -53,6 +53,11 @@ func (a *auth) Register(ctx context.Context, user domain.User) (string, error) {
 		return nil
 	})
 	if err != nil {
+		if errors.Is(err, domain.ErrUserAlreadyExists) {
+			log.Warn("Failed to add user info to db", logger.Error(err))
+
+			return "", fmt.Errorf("%s: %w", op, err)
+		}
 		log.Error("Failed to add user info to db", logger.Error(err))
 
 		return "", fmt.Errorf("%s: %w", op, err)

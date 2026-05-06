@@ -27,7 +27,7 @@ func (h *handler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userUuid, err := h.usecase.Register(r.Context(), userDtoToDomain(user))
+	userUuid, err := h.usecase.Register(r.Context(), userDtoToDomain(user), user.Password)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserAlreadyExists) {
 			http.Error(w, "user with this username or email already exists", http.StatusConflict)
@@ -84,6 +84,6 @@ func (h *handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(http.StatusOK)
 	w.Write(resBytes)
 }

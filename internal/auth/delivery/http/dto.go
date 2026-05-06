@@ -11,7 +11,6 @@ type userDto struct {
 func userDtoToDomain(userDto userDto) domain.User {
 	return domain.User{
 		Username: userDto.Username,
-		PassHash: userDto.Password,
 		Email:    userDto.Email,
 	}
 }

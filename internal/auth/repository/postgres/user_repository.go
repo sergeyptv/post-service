@@ -29,7 +29,7 @@ func (p *postgresUserRepository) CreateUser(ctx context.Context, tx pgx.Tx, user
 
 	err := tx.QueryRow(ctx,
 		"INSERT INTO auth.users (username, passHash, email) VALUES ($1, $2, $3) RETURNING uuid",
-		user.Username, user.PassHash, user.Email,
+		user.Username, user.PasswordHash, user.Email,
 	).Scan(&userUuid)
 	if err != nil {
 		var pgErr *pgconn.PgError
@@ -51,7 +51,7 @@ func (p *postgresUserRepository) GetUserByEmail(ctx context.Context, email strin
 
 	err := p.pool.Db.QueryRow(ctx,
 		"SELECT uuid, username, passHash, email FROM auth.users WHERE email = $1",
-		email).Scan(&user.Uuid, &user.Username, &user.PassHash, &user.Email)
+		email).Scan(&user.Uuid, &user.Username, &user.PasswordHash, &user.Email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return domain.User{}, fmt.Errorf("%s: %w", op, repository.ErrUserNotFound)
