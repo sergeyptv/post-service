@@ -4,7 +4,8 @@ import (
 	"context"
 	"crypto/x509"
 	authV1 "github.com/sergeyptv/post_service/api/pkg/proto/auth/v1"
-	"github.com/sergeyptv/post_service/internal/auth/crypto/jwt"
+	"github.com/sergeyptv/post_service/internal/auth/ports"
+	"github.com/sergeyptv/post_service/internal/platform/jwt"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -12,11 +13,13 @@ import (
 type handler struct {
 	authV1.UnimplementedAuthServiceServer
 
-	jwtConfig jwt.Config
+	usecase   ports.Usecase
+	jwtConfig jwt.ConfigSigner
 }
 
-func NewHandler(jwtConfig jwt.Config) *handler {
+func NewHandler(usecase ports.Usecase, jwtConfig jwt.ConfigSigner) *handler {
 	return &handler{
+		usecase:   usecase,
 		jwtConfig: jwtConfig,
 	}
 }
@@ -29,7 +32,7 @@ func (h *handler) GetPublicKey(ctx context.Context, req *authV1.GetPublicKeyRequ
 
 	return &authV1.GetPublicKeyResponse{
 		KeyData:   keyData,
-		Format:    "DER",
-		Algorithm: "RS256",
+		Format:    h.jwtConfig.Format,
+		Algorithm: h.jwtConfig.Algorithm,
 	}, nil
 }

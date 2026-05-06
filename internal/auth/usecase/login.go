@@ -29,7 +29,7 @@ func (a *auth) Login(ctx context.Context, email, password string) (string, error
 		return "", fmt.Errorf("%s: %w", op, err)
 	}
 
-	err = bcrypt.CompareHashAndPassword([]byte(user.PassHash), []byte(password))
+	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password))
 	if err != nil {
 		log.Error("Invalid credentials", logger.Error(err))
 

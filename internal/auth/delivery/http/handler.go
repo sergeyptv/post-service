@@ -27,6 +27,12 @@ func (h *handler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	err = user.Validate()
+	if err != nil {
+		http.Error(w, "can not validate request", http.StatusBadRequest)
+		return
+	}
+
 	userUuid, err := h.usecase.Register(r.Context(), userDtoToDomain(user), user.Password)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserAlreadyExists) {
@@ -56,7 +62,13 @@ func (h *handler) Register(w http.ResponseWriter, r *http.Request) {
 func (h *handler) Login(w http.ResponseWriter, r *http.Request) {
 	var user userDto
 
-	err := json.NewDecoder(r.Body).Decode(&user)
+	err := user.Validate()
+	if err != nil {
+		http.Error(w, "can not validate request", http.StatusBadRequest)
+		return
+	}
+
+	err = json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
 		http.Error(w, "Failed to read request", http.StatusBadRequest)
 		return

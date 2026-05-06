@@ -37,7 +37,7 @@ func appRun(log *slog.Logger, cfg *config.Config) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	jwtTokenSigner := jwt.NewJwtTokenSigner(cfg.App, cfg.Jwt)
+	jwtTokenSigner := jwt.NewJwtTokenSigner(cfg.Jwt)
 
 	pool, err := platformPostgres.NewPool(ctx, cfg.Postgres)
 	if err != nil {
@@ -59,7 +59,7 @@ func appRun(log *slog.Logger, cfg *config.Config) error {
 	authHttpServer := httpserver.New(httpRouter.Mux, cfg.HttpServer)
 	defer authHttpServer.Close()
 
-	grpcHandler := grpc.NewHandler(cfg.Jwt)
+	grpcHandler := grpc.NewHandler(authUsecase, cfg.Jwt)
 
 	grpcGrpcServer, err := grpcServer.NewServer(cfg.GrpcServer)
 	if err != nil {
@@ -90,6 +90,5 @@ func appRun(log *slog.Logger, cfg *config.Config) error {
 
 	grpcGrpcServer.Shutdown()
 	grpcGrpcServer.CloseListener()
-	authHttpServer.Shutdown(ctxShutdown)
-	return authHttpServer.Close()
+	return authHttpServer.Shutdown(ctxShutdown)
 }

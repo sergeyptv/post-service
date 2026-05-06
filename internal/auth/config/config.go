@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/ilyakaznacheev/cleanenv"
-	authJwt "github.com/sergeyptv/post_service/internal/auth/crypto/jwt"
 	"github.com/sergeyptv/post_service/internal/platform/config"
 	"github.com/sergeyptv/post_service/internal/platform/grpcServer"
 	"github.com/sergeyptv/post_service/internal/platform/httpserver"
+	authJwt "github.com/sergeyptv/post_service/internal/platform/jwt"
 	"github.com/sergeyptv/post_service/internal/platform/postgres"
 	"github.com/sergeyptv/post_service/internal/platform/redis"
 	"os"
@@ -16,7 +16,7 @@ import (
 
 type Config struct {
 	App        config.App
-	Jwt        authJwt.Config
+	Jwt        authJwt.ConfigSigner
 	Postgres   postgres.Config
 	Redis      redis.Config
 	HttpServer httpserver.Config
@@ -39,7 +39,7 @@ func mustParseEnv() *Config {
 	return &cfg
 }
 
-func mustParseRSAKeys(c authJwt.Config) (*rsa.PrivateKey, *rsa.PublicKey) {
+func mustParseRSAKeys(c authJwt.ConfigSigner) (*rsa.PrivateKey, *rsa.PublicKey) {
 	var rsaPrivateKeyBytes []byte
 
 	rsaPrivateKeyBytes, err := os.ReadFile(fmt.Sprintf("%s", c.PrivateKeyPath))

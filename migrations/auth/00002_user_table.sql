@@ -4,7 +4,7 @@ CREATE EXTENSION IF NOT EXISTS pg_uuidv7;
 CREATE TABLE IF NOT EXISTS auth.users (
     uuid UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
     username TEXT NOT NULL UNIQUE,
-    passHash TEXT NOT NULL,
+    password_hash TEXT NOT NULL,
     email TEXT NOT NULL UNIQUE
 );
 

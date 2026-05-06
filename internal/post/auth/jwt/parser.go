@@ -21,14 +21,16 @@ var (
 )
 
 type jwtTokenParser struct {
-	jwtCache   JwtCache
+	config     platformJwt.ConfigParser
+	cache      JwtCache
 	authClient ports.AuthClient
 	sf         singleflight.Group
 }
 
-func NewJwtTokenParser(jwtCache JwtCache, authClient ports.AuthClient) *jwtTokenParser {
+func NewJwtTokenParser(config platformJwt.ConfigParser, cache JwtCache, authClient ports.AuthClient) *jwtTokenParser {
 	return &jwtTokenParser{
-		jwtCache:   jwtCache,
+		config:     config,
+		cache:      cache,
 		authClient: authClient,
 	}
 }
@@ -36,13 +38,13 @@ func NewJwtTokenParser(jwtCache JwtCache, authClient ports.AuthClient) *jwtToken
 func (j *jwtTokenParser) publicKey(ctx context.Context) (*rsa.PublicKey, error) {
 	const op = "auth.jwt.publicKey"
 
-	key, err := j.jwtCache.Get()
+	key, err := j.cache.Get()
 	if err == nil {
 		return key, nil
 	}
 
 	v, err, _ := j.sf.Do("publicKey", func() (any, error) {
-		key, err := j.jwtCache.Get()
+		key, err := j.cache.Get()
 		if err == nil {
 			return key, nil
 		}
@@ -50,7 +52,7 @@ func (j *jwtTokenParser) publicKey(ctx context.Context) (*rsa.PublicKey, error) 
 		return j.refreshKey(ctx)
 	})
 	if err != nil {
-		key, cacheErr := j.jwtCache.Get()
+		key, cacheErr := j.cache.Get()
 		if cacheErr == nil {
 			return key, nil
 		}
@@ -78,7 +80,7 @@ func (j *jwtTokenParser) refreshKey(ctx context.Context) (*rsa.PublicKey, error)
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	j.jwtCache.Set(rsaPublicKey)
+	j.cache.Set(rsaPublicKey)
 
 	return rsaPublicKey, nil
 }
@@ -90,7 +92,7 @@ func (j *jwtTokenParser) validate(claims platformJwt.Claims) error {
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
-	if iss != "auth" {
+	if iss != j.config.Issuer {
 		return fmt.Errorf("%s: %w", op, ErrIssIncorrect)
 	}
 
@@ -112,7 +114,7 @@ func (j *jwtTokenParser) Parse(ctx context.Context, jwtToken string) (domain.Use
 
 	token, err := jwt.ParseWithClaims(jwtToken, &claims, func(*jwt.Token) (any, error) {
 		return j.publicKey(ctx)
-	}, jwt.WithValidMethods([]string{"RS256"}))
+	}, jwt.WithValidMethods([]string{j.config.Algorithm}))
 	if err != nil {
 		return domain.User{}, fmt.Errorf("%s: %w", op, err)
 	}

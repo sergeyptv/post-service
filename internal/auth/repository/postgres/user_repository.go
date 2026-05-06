@@ -28,7 +28,7 @@ func (p *postgresUserRepository) CreateUser(ctx context.Context, tx pgx.Tx, user
 	var userUuid string
 
 	err := tx.QueryRow(ctx,
-		"INSERT INTO auth.users (username, passHash, email) VALUES ($1, $2, $3) RETURNING uuid",
+		"INSERT INTO auth.users (username, password_hash, email) VALUES ($1, $2, $3) RETURNING uuid",
 		user.Username, user.PasswordHash, user.Email,
 	).Scan(&userUuid)
 	if err != nil {
@@ -50,7 +50,7 @@ func (p *postgresUserRepository) GetUserByEmail(ctx context.Context, email strin
 	var user domain.User
 
 	err := p.pool.Db.QueryRow(ctx,
-		"SELECT uuid, username, passHash, email FROM auth.users WHERE email = $1",
+		"SELECT uuid, username, password_hash, email FROM auth.users WHERE email = $1",
 		email).Scan(&user.Uuid, &user.Username, &user.PasswordHash, &user.Email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

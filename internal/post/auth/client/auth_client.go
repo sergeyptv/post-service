@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	authV1 "github.com/sergeyptv/post_service/api/pkg/proto/auth/v1"
+	"github.com/sergeyptv/post_service/internal/platform/jwt"
 )
 
 var (
@@ -17,11 +18,13 @@ var (
 
 type authClient struct {
 	client authV1.AuthServiceClient
+	jwt    jwt.ConfigParser
 }
 
-func NewAuthClient(client authV1.AuthServiceClient) *authClient {
+func NewAuthClient(client authV1.AuthServiceClient, jwt jwt.ConfigParser) *authClient {
 	return &authClient{
 		client: client,
+		jwt:    jwt,
 	}
 }
 
@@ -33,12 +36,12 @@ func (a *authClient) GetPublicKey(ctx context.Context) (*rsa.PublicKey, error) {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	if resp.GetAlgorithm() != "RS256" {
+	if resp.GetAlgorithm() != a.jwt.Algorithm {
 		return nil, fmt.Errorf("%s: %w", op, ErrUnsupportedAlgorithm)
 	}
 
 	switch resp.GetFormat() {
-	case "DER":
+	case a.jwt.Format:
 		return a.parseDer(resp.GetKeyData())
 
 	default:

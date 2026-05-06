@@ -49,11 +49,11 @@ func appRun(log *slog.Logger, cfg *config.Config) error {
 	}
 	defer client.Close()
 	authServiceClient := authV1.NewAuthServiceClient(client.Conn)
-	authClient := authGrpcClient.NewAuthClient(authServiceClient)
+	authClient := authGrpcClient.NewAuthClient(authServiceClient, cfg.Jwt)
 
 	cache := jwt.NewInMemoryCache(cfg.Cache)
 
-	jwtParser := jwt.NewJwtTokenParser(cache, authClient)
+	jwtParser := jwt.NewJwtTokenParser(cfg.Jwt, cache, authClient)
 
 	postUsecase := usecase.NewPostUsecase(log, postgresPostRepository)
 
