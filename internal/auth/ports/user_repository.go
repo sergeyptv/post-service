@@ -7,6 +7,6 @@ import (
 )
 
 type UserRepository interface {
-	CreateUser(ctx context.Context, tx pgx.Tx, user domain.InputUser) (string, error)
+	CreateUser(ctx context.Context, tx pgx.Tx, user domain.User) (string, error)
 	GetUserByEmail(ctx context.Context, email string) (domain.User, error)
 }

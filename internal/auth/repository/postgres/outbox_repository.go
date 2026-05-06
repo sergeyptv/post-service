@@ -2,12 +2,9 @@ package postgres
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/sergeyptv/post_service/internal/auth/domain"
-	"github.com/sergeyptv/post_service/internal/auth/repository"
 	"github.com/sergeyptv/post_service/internal/platform/postgres"
 )
 
@@ -31,12 +28,6 @@ func (p *postgresOutboxRepository) CreateEvent(ctx context.Context, tx pgx.Tx, e
 		event.Version, event.UserUuid, event.Username, event.UserEmail, event.RegisteredAt,
 	).Scan(&eventUuid)
 	if err != nil {
-		var pgErr *pgconn.PgError
-
-		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			return "", fmt.Errorf("%s: %w", op, repository.ErrUserExists)
-		}
-
 		return "", fmt.Errorf("%s: %w", op, err)
 	}
 

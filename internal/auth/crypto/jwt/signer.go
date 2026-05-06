@@ -8,25 +8,28 @@ import (
 )
 
 type jwtTokenSigner struct {
-	app config.App
-	cfg Config
+	appCfg config.App
+	jwtCfg Config
 }
 
-func NewJwtTokenSigner(cfg Config) *jwtTokenSigner {
-	return &jwtTokenSigner{cfg: cfg}
+func NewJwtTokenSigner(appCfg config.App, jwtCfg Config) *jwtTokenSigner {
+	return &jwtTokenSigner{
+		appCfg: appCfg,
+		jwtCfg: jwtCfg,
+	}
 }
 
 func (j *jwtTokenSigner) NewToken(userUuid, username, userEmail string) (string, error) {
 	t := jwt.NewWithClaims(jwt.SigningMethodRS256, platformJwt.Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
-			Issuer:    j.app.Name,
+			Issuer:    j.appCfg.Name,
 			Subject:   userUuid,
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(j.cfg.TokenTTL)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(j.jwtCfg.TokenTTL)),
 		},
 		Username: username,
 		Email:    userEmail,
 	},
 	)
 
-	return t.SignedString(j.cfg.PrivateKey)
+	return t.SignedString(j.jwtCfg.PrivateKey)
 }

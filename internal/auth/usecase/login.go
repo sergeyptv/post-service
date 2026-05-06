@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"github.com/sergeyptv/post_service/internal/auth/domain"
@@ -46,7 +45,7 @@ func (a *auth) Login(ctx context.Context, email, password string) (string, error
 
 	jti, err := a.tokenRepo.GetToken(ctx, user.Uuid)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, repository.ErrTokenNotFound) {
 			_, err = a.tokenRepo.CreateToken(ctx, user.Uuid, token)
 			if err != nil {
 				log.Error("Failed to save token to db", logger.Error(err))

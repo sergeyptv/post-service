@@ -2,6 +2,8 @@ package postgres
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"github.com/sergeyptv/post_service/internal/auth/repository"
 	"github.com/sergeyptv/post_service/internal/platform/postgres"
@@ -36,18 +38,22 @@ func (p *postgresTokenRepository) CreateToken(ctx context.Context, userUuid stri
 func (p *postgresTokenRepository) GetToken(ctx context.Context, userUuid string) (string, error) {
 	const op = "repository.postgres.GetToken"
 
-	var token string
+	var jti string
 
 	err := p.pool.Db.QueryRow(ctx,
-		`SELECT token
+		`SELECT jti
 				FROM token.storage
 				WHERE user_uuid = $1`,
-		userUuid).Scan(&token)
+		userUuid).Scan(&jti)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", fmt.Errorf("%s: %w", op, repository.ErrTokenNotFound)
+		}
+
 		return "", fmt.Errorf("%s: %w", op, err)
 	}
 
-	return token, nil
+	return jti, nil
 }
 func (p *postgresTokenRepository) UpdateToken(ctx context.Context, jti string, newToken string) error {
 	const op = "repository.postgres.UpdateToken"
@@ -62,7 +68,7 @@ func (p *postgresTokenRepository) UpdateToken(ctx context.Context, jti string, n
 	}
 
 	if cmdTag.RowsAffected() < 1 {
-		return repository.ErrNoRowsAffected
+		return fmt.Errorf("%s: %w", op, repository.ErrNoRowsAffected)
 	}
 
 	return nil

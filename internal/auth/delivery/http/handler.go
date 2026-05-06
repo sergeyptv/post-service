@@ -19,7 +19,7 @@ func NewHandler(usecase ports.Usecase) *handler {
 }
 
 func (h *handler) Register(w http.ResponseWriter, r *http.Request) {
-	var user domain.InputUser
+	var user userDto
 
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
@@ -27,8 +27,13 @@ func (h *handler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userUuid, err := h.usecase.Register(r.Context(), user)
+	userUuid, err := h.usecase.Register(r.Context(), userDtoToDomain(user))
 	if err != nil {
+		if errors.Is(err, domain.ErrUserAlreadyExists) {
+			http.Error(w, "user with this username or email already exists", http.StatusConflict)
+			return
+		}
+
 		http.Error(w, "Failed to register user", http.StatusInternalServerError)
 		return
 	}
@@ -49,7 +54,7 @@ func (h *handler) Register(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) Login(w http.ResponseWriter, r *http.Request) {
-	var user domain.InputUser
+	var user userDto
 
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {

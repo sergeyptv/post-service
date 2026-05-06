@@ -37,7 +37,7 @@ func appRun(log *slog.Logger, cfg *config.Config) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	jwtTokenSigner := jwt.NewJwtTokenSigner(cfg.Jwt)
+	jwtTokenSigner := jwt.NewJwtTokenSigner(cfg.App, cfg.Jwt)
 
 	pool, err := platformPostgres.NewPool(ctx, cfg.Postgres)
 	if err != nil {
@@ -73,14 +73,14 @@ func appRun(log *slog.Logger, cfg *config.Config) error {
 	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
 
 	go func() {
-		if herr := authHttpServer.Start(); herr != nil && !errors.Is(herr, http.ErrServerClosed) {
-			log.Error("http server failed", logger.Error(herr))
+		if gerr := grpcGrpcServer.Serve(); gerr != nil {
+			log.Error("grpc server failed", logger.Error(gerr))
 		}
 	}()
 
 	go func() {
-		if gerr := grpcGrpcServer.Serve(); gerr != nil {
-			log.Error("grpc server failed", logger.Error(gerr))
+		if herr := authHttpServer.Start(); herr != nil && !errors.Is(herr, http.ErrServerClosed) {
+			log.Error("http server failed", logger.Error(herr))
 		}
 	}()
 
@@ -89,5 +89,6 @@ func appRun(log *slog.Logger, cfg *config.Config) error {
 	ctxShutdown, cancelShutdown := context.WithTimeout(ctx, 5*time.Second)
 	defer cancelShutdown()
 
+	grpcGrpcServer.Shutdown()
 	return authHttpServer.Shutdown(ctxShutdown)
 }

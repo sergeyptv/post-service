@@ -22,20 +22,20 @@ func NewPostgresUserRepository(pool *postgres.Pool) *postgresUserRepository {
 	}
 }
 
-func (p *postgresUserRepository) CreateUser(ctx context.Context, tx pgx.Tx, user domain.InputUser) (string, error) {
+func (p *postgresUserRepository) CreateUser(ctx context.Context, tx pgx.Tx, user domain.User) (string, error) {
 	const op = "repository.postgres.CreateUser"
 
 	var userUuid string
 
 	err := tx.QueryRow(ctx,
 		"INSERT INTO auth.users (username, passHash, email) VALUES ($1, $2, $3) RETURNING uuid",
-		user.Username, user.Password, user.Email,
+		user.Username, user.PassHash, user.Email,
 	).Scan(&userUuid)
 	if err != nil {
 		var pgErr *pgconn.PgError
 
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			return "", fmt.Errorf("%s: %w", op, repository.ErrUserExists)
+			return "", fmt.Errorf("%s: %w", op, repository.ErrUserAlreadyExists)
 		}
 
 		return "", fmt.Errorf("%s: %w", op, err)

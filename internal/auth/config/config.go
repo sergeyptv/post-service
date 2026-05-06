@@ -40,14 +40,10 @@ func mustParseEnv() *Config {
 }
 
 func mustParseRSAKeys(c authJwt.Config) (*rsa.PrivateKey, *rsa.PublicKey) {
-	filePrivateKey, err := os.OpenFile(fmt.Sprintf("../../%s", c.PrivateKeyPath), os.O_RDONLY, 0777)
-	if err != nil {
-		panic("cannot open rsa private key")
-	}
-
 	var rsaPrivateKeyBytes []byte
-	n, err := filePrivateKey.Read(rsaPrivateKeyBytes)
-	if err != nil || n == 0 {
+
+	rsaPrivateKeyBytes, err := os.ReadFile(fmt.Sprintf("%s", c.PrivateKeyPath))
+	if err != nil || len(rsaPrivateKeyBytes) == 0 {
 		panic("cannot read rsa private key")
 	}
 
@@ -56,14 +52,10 @@ func mustParseRSAKeys(c authJwt.Config) (*rsa.PrivateKey, *rsa.PublicKey) {
 		panic("cannot parse rsa private key")
 	}
 
-	filePublicKey, err := os.OpenFile(fmt.Sprintf("../../%s", c.PublicKeyPath), os.O_RDONLY, 0777)
-	if err != nil {
-		panic("cannot open rsa public key")
-	}
-
 	var rsaPublicKeyBytes []byte
-	n, err = filePublicKey.Read(rsaPublicKeyBytes)
-	if err != nil || n == 0 {
+
+	rsaPublicKeyBytes, err = os.ReadFile(fmt.Sprintf("%s", c.PublicKeyPath))
+	if err != nil || len(rsaPublicKeyBytes) == 0 {
 		panic("cannot read rsa public key")
 	}
 

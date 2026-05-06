@@ -4,13 +4,10 @@ import (
 	"fmt"
 	"google.golang.org/grpc"
 	"net"
-	"time"
 )
 
 type Config struct {
-	Host        string        `env:"HOST" env-prefix:"GRPC_SERVER_" env-required`
-	Port        string        `env:"PORT" env-prefix:"GRPC_SERVER_" env-required`
-	IdleTimeout time.Duration `env:"IDLE_TIMEOUT" env-prefix:"GRPC_SERVER_" env-required`
+	Port string `env:"PORT" env-prefix:"GRPC_SERVER_" env-required`
 }
 
 type Server struct {
@@ -23,7 +20,6 @@ func NewServer(c Config) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer lis.Close()
 
 	server := grpc.NewServer()
 
@@ -39,4 +35,8 @@ func (s *Server) Serve() error {
 
 func (s *Server) Close() error {
 	return s.lis.Close()
+}
+
+func (s *Server) Shutdown() {
+	s.Server.GracefulStop()
 }
