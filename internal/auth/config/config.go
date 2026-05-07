@@ -6,7 +6,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/ilyakaznacheev/cleanenv"
 	"github.com/sergeyptv/post_service/internal/platform/config"
-	"github.com/sergeyptv/post_service/internal/platform/grpcServer"
+	"github.com/sergeyptv/post_service/internal/platform/grpcserver"
 	"github.com/sergeyptv/post_service/internal/platform/httpserver"
 	authJwt "github.com/sergeyptv/post_service/internal/platform/jwt"
 	"github.com/sergeyptv/post_service/internal/platform/postgres"
@@ -20,7 +20,7 @@ type Config struct {
 	Postgres   postgres.Config
 	Redis      redis.Config
 	HttpServer httpserver.Config
-	GrpcServer grpcServer.Config
+	GrpcServer grpcserver.Config
 }
 
 func MustLoad() *Config {

@@ -7,9 +7,11 @@ import (
 	"fmt"
 	"github.com/golang-jwt/jwt/v5"
 	platformJwt "github.com/sergeyptv/post_service/internal/platform/jwt"
+	"github.com/sergeyptv/post_service/internal/platform/logger"
 	"github.com/sergeyptv/post_service/internal/post/domain"
 	"github.com/sergeyptv/post_service/internal/post/ports"
 	"golang.org/x/sync/singleflight"
+	"log/slog"
 	"time"
 )
 
@@ -21,14 +23,16 @@ var (
 )
 
 type jwtTokenParser struct {
+	log        *slog.Logger
 	config     platformJwt.ConfigParser
 	cache      JwtCache
 	authClient ports.AuthClient
 	sf         singleflight.Group
 }
 
-func NewJwtTokenParser(config platformJwt.ConfigParser, cache JwtCache, authClient ports.AuthClient) *jwtTokenParser {
+func NewJwtTokenParser(log *slog.Logger, config platformJwt.ConfigParser, cache JwtCache, authClient ports.AuthClient) *jwtTokenParser {
 	return &jwtTokenParser{
+		log:        log,
 		config:     config,
 		cache:      cache,
 		authClient: authClient,
@@ -37,6 +41,8 @@ func NewJwtTokenParser(config platformJwt.ConfigParser, cache JwtCache, authClie
 
 func (j *jwtTokenParser) publicKey(ctx context.Context) (*rsa.PublicKey, error) {
 	const op = "auth.jwt.publicKey"
+
+	log := j.log.With(slog.String("op", op))
 
 	key, err := j.cache.Get()
 	if err == nil {
@@ -58,6 +64,7 @@ func (j *jwtTokenParser) publicKey(ctx context.Context) (*rsa.PublicKey, error) 
 		}
 
 		if errors.Is(cacheErr, ErrPublicKeyTtlExpired) {
+			log.Warn("Enable to get new key. Return the old one", logger.Error(err))
 			return key, nil
 		}
 

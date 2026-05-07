@@ -3,6 +3,7 @@ package http
 import (
 	"errors"
 	"github.com/sergeyptv/post_service/internal/auth/domain"
+	"strings"
 )
 
 var (
@@ -22,8 +23,9 @@ func userDtoToDomain(userDto userDto) domain.User {
 	}
 }
 
+// TODO: add prod validator
 func (u *userDto) Validate() error {
-	if u.Email == "" || u.Password == "" {
+	if u.Email == "" || u.Password == "" || !strings.Contains(u.Email, "@") {
 		return errDtoInvalid
 	}
 

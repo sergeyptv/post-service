@@ -10,7 +10,7 @@ import (
 	authHttp "github.com/sergeyptv/post_service/internal/auth/delivery/http"
 	"github.com/sergeyptv/post_service/internal/auth/repository/postgres"
 	"github.com/sergeyptv/post_service/internal/auth/usecase"
-	"github.com/sergeyptv/post_service/internal/platform/grpcServer"
+	"github.com/sergeyptv/post_service/internal/platform/grpcserver"
 	"github.com/sergeyptv/post_service/internal/platform/httpserver"
 	"github.com/sergeyptv/post_service/internal/platform/logger"
 	platformPostgres "github.com/sergeyptv/post_service/internal/platform/postgres"
@@ -61,18 +61,18 @@ func appRun(log *slog.Logger, cfg *config.Config) error {
 
 	grpcHandler := grpc.NewHandler(authUsecase, cfg.Jwt)
 
-	grpcGrpcServer, err := grpcServer.NewServer(cfg.GrpcServer)
+	grpcServer, err := grpcserver.NewServer(cfg.GrpcServer)
 	if err != nil {
 		return err
 	}
 
-	authV1.RegisterAuthServiceServer(grpcGrpcServer.Server, grpcHandler)
+	authV1.RegisterAuthServiceServer(grpcServer.Server, grpcHandler)
 
 	stop := make(chan os.Signal)
 	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
 
 	go func() {
-		if gerr := grpcGrpcServer.Serve(); gerr != nil {
+		if gerr := grpcServer.Serve(); gerr != nil {
 			log.Error("grpc server failed", logger.Error(gerr))
 		}
 	}()
@@ -88,7 +88,7 @@ func appRun(log *slog.Logger, cfg *config.Config) error {
 	ctxShutdown, cancelShutdown := context.WithTimeout(ctx, 5*time.Second)
 	defer cancelShutdown()
 
-	grpcGrpcServer.Shutdown()
-	grpcGrpcServer.CloseListener()
+	grpcServer.CloseListener()
+	grpcServer.Shutdown()
 	return authHttpServer.Shutdown(ctxShutdown)
 }

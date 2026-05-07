@@ -62,15 +62,15 @@ func (h *handler) Register(w http.ResponseWriter, r *http.Request) {
 func (h *handler) Login(w http.ResponseWriter, r *http.Request) {
 	var user userDto
 
-	err := user.Validate()
+	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
-		http.Error(w, "can not validate request", http.StatusBadRequest)
+		http.Error(w, "Failed to read request", http.StatusBadRequest)
 		return
 	}
 
-	err = json.NewDecoder(r.Body).Decode(&user)
+	err = user.Validate()
 	if err != nil {
-		http.Error(w, "Failed to read request", http.StatusBadRequest)
+		http.Error(w, "can not validate request", http.StatusBadRequest)
 		return
 	}
 

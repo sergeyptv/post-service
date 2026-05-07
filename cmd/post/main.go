@@ -53,11 +53,11 @@ func appRun(log *slog.Logger, cfg *config.Config) error {
 
 	cache := jwt.NewInMemoryCache(cfg.Cache)
 
-	jwtParser := jwt.NewJwtTokenParser(cfg.Jwt, cache, authClient)
+	jwtParser := jwt.NewJwtTokenParser(log, cfg.Jwt, cache, authClient)
 
 	postUsecase := usecase.NewPostUsecase(log, postgresPostRepository)
 
-	handler := postHttp.NewHandler(postUsecase, jwtParser)
+	handler := postHttp.NewHandler(log, postUsecase, jwtParser)
 	router := postHttp.NewRouter(handler)
 
 	postServer := httpserver.New(router.Mux, cfg.Server)
