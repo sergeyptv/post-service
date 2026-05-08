@@ -9,17 +9,17 @@ import (
 	"github.com/sergeyptv/post_service/internal/platform/postgres"
 )
 
-type postgresTokenRepository struct {
+type postgresSessionRepository struct {
 	pool *postgres.Pool
 }
 
-func NewPostgresTokenRepository(pool *postgres.Pool) *postgresTokenRepository {
-	return &postgresTokenRepository{
+func NewPostgresSessionRepository(pool *postgres.Pool) *postgresSessionRepository {
+	return &postgresSessionRepository{
 		pool: pool,
 	}
 }
 
-func (p *postgresTokenRepository) CreateToken(ctx context.Context, userUuid string, token string) (string, error) {
+func (p *postgresSessionRepository) CreateToken(ctx context.Context, userUuid string, token string) (string, error) {
 	const op = "repository.postgres.CreateToken"
 
 	var jti string
@@ -35,7 +35,7 @@ func (p *postgresTokenRepository) CreateToken(ctx context.Context, userUuid stri
 
 	return jti, nil
 }
-func (p *postgresTokenRepository) GetToken(ctx context.Context, userUuid string) (string, error) {
+func (p *postgresSessionRepository) GetToken(ctx context.Context, userUuid string) (string, error) {
 	const op = "repository.postgres.GetToken"
 
 	var jti string
@@ -55,7 +55,7 @@ func (p *postgresTokenRepository) GetToken(ctx context.Context, userUuid string)
 
 	return jti, nil
 }
-func (p *postgresTokenRepository) UpdateToken(ctx context.Context, jti string, newToken string) error {
+func (p *postgresSessionRepository) UpdateToken(ctx context.Context, jti string, newToken string) error {
 	const op = "repository.postgres.UpdateToken"
 
 	cmdTag, err := p.pool.Db.Exec(ctx,
