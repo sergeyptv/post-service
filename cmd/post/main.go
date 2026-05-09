@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	authV1 "github.com/sergeyptv/post_service/api/pkg/proto/auth/v1"
-	"github.com/sergeyptv/post_service/internal/platform/grpcClient"
-	"github.com/sergeyptv/post_service/internal/platform/httpserver"
+	grpcClient "github.com/sergeyptv/post_service/internal/platform/grpc_client"
+	httpServer "github.com/sergeyptv/post_service/internal/platform/http_server"
 	"github.com/sergeyptv/post_service/internal/platform/logger"
 	platformPostgres "github.com/sergeyptv/post_service/internal/platform/postgres"
 	authGrpcClient "github.com/sergeyptv/post_service/internal/post/auth/client"
@@ -60,7 +60,7 @@ func appRun(log *slog.Logger, cfg *config.Config) error {
 	handler := postHttp.NewHandler(log, postUsecase, jwtParser)
 	router := postHttp.NewRouter(handler)
 
-	postServer := httpserver.New(router.Mux, cfg.Server)
+	postServer := httpServer.New(router.Mux, cfg.Server)
 	defer postServer.Close()
 
 	stop := make(chan os.Signal)

@@ -1,15 +1,20 @@
 package http
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"github.com/sergeyptv/post_service/internal/auth/repository"
+	"io"
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
+
+const maxBytes = 10 << 20
 
 var (
 	errMaxLimitAchieved = errors.New("max limit for requests is achieved")
@@ -23,17 +28,34 @@ func (h *handler) RateLimiterMiddleware(next http.Handler) http.HandlerFunc {
 			slog.String("path", r.URL.Path),
 		)
 
+		r.Body = http.MaxBytesReader(w, r.Body, maxBytes)
+
+		bodyBytes, err := io.ReadAll(r.Body)
+		if err != nil {
+			var maxBytesErr *http.MaxBytesError
+
+			if errors.As(err, &maxBytesErr) {
+				http.Error(w, "Payload too large", http.StatusRequestEntityTooLarge)
+				return
+			}
+			http.Error(w, "Failed to read request body", http.StatusBadRequest)
+			return
+		}
+		r.Body.Close()
+
 		var req struct {
 			Email string `json:"email"`
 		}
 
-		err := json.NewDecoder(r.Body).Decode(&req)
+		err = json.Unmarshal(bodyBytes, &req)
 		if err != nil {
 			http.Error(w, "Failed to read request", http.StatusBadRequest)
 			return
 		}
 
-		err = h.checkRateLimiter(r.Context(), r.URL.Hostname(), h.redisConfig.IpRateLimit, h.redisConfig.IpRateLimiterTtl)
+		reqIp := strings.Split(r.RemoteAddr, ":")[0]
+
+		err = h.checkRateLimiter(r.Context(), reqIp, h.redisConfig.IpRateLimit, h.redisConfig.IpRateLimiterTtl)
 		if err != nil {
 			switch {
 			case errors.Is(err, errMaxLimitAchieved):
@@ -67,18 +89,21 @@ func (h *handler) RateLimiterMiddleware(next http.Handler) http.HandlerFunc {
 			}
 		}
 
+		r.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+		r.ContentLength = int64(len(bodyBytes))
+
 		next.ServeHTTP(w, r)
 	}
 }
 
 func (h *handler) checkRateLimiter(ctx context.Context, limiter string, maxLimit int, ttl time.Duration) error {
-	limit, err := h.sessionRepo.Get(ctx, limiter)
+	limit, err := h.rateLimitRepo.GetLimit(ctx, limiter)
 	if err != nil {
 		if errors.Is(err, repository.ErrDbClientClosed) {
 			return err
 		}
 
-		_, err = h.sessionRepo.Set(ctx, limiter, "1", ttl)
+		_, err = h.rateLimitRepo.SetLimit(ctx, limiter, "1", ttl)
 		if err != nil {
 			return err
 		}
@@ -95,7 +120,7 @@ func (h *handler) checkRateLimiter(ctx context.Context, limiter string, maxLimit
 		limitInt++
 		limit = strconv.Itoa(limitInt)
 
-		_, err = h.sessionRepo.Set(ctx, limiter, limit, ttl)
+		_, err = h.rateLimitRepo.SetLimit(ctx, limiter, limit, ttl)
 		if err != nil {
 			return err
 		}

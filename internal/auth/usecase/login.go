@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/sergeyptv/post_service/internal/auth/crypto/jwt"
 	"github.com/sergeyptv/post_service/internal/auth/domain"
 	"github.com/sergeyptv/post_service/internal/auth/repository"
 	"github.com/sergeyptv/post_service/internal/platform/logger"
@@ -36,21 +37,21 @@ func (a *auth) Login(ctx context.Context, email, password string) (string, strin
 		return "", "", fmt.Errorf("%s: %w", op, domain.ErrInvalidCredentials)
 	}
 
-	_, accessToken, err := a.tokenSigner.NewToken(user.Uuid, user.Username, user.Email, "access")
+	_, accessToken, err := a.tokenSigner.NewToken(user.Uuid, user.Username, user.Email, jwt.TypeAccess)
 	if err != nil {
 		log.Error("Failed to create access token", logger.Error(err))
 
 		return "", "", fmt.Errorf("%s: %w", op, err)
 	}
 
-	refreshTokenJti, refreshToken, err := a.tokenSigner.NewToken(user.Uuid, user.Username, user.Email, "refresh")
+	refreshTokenJti, refreshToken, err := a.tokenSigner.NewToken(user.Uuid, user.Username, user.Email, jwt.TypeRefresh)
 	if err != nil {
 		log.Error("Failed to create refresh token", logger.Error(err))
 
 		return "", "", fmt.Errorf("%s: %w", op, err)
 	}
 
-	_, err = a.sessionRepo.Set(ctx, refreshTokenJti, refreshToken, a.config.Redis.TokenTtl)
+	_, err = a.sessionRepo.SetToken(ctx, refreshTokenJti, refreshToken, a.config.Redis.TokenTtl)
 	if err != nil {
 		log.Error("Failed to set token to db", logger.Error(err))
 

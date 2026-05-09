@@ -10,6 +10,8 @@ var (
 	ErrIssIncorrect       = errors.New("iss is incorrect")
 	ErrKidNotSet          = errors.New("kid is not set")
 	ErrKidIncorrect       = errors.New("kid is incorrect")
+	ErrTokenUseNotSet     = errors.New("token use is not set")
+	ErrTokenUseIncorrect  = errors.New("token use is incorrect")
 	ErrExpFired           = errors.New("exp time is fired")
 	ErrClientNotRespond   = errors.New("client is not responding")
 )

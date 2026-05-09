@@ -11,18 +11,18 @@ import (
 )
 
 type handler struct {
-	log         *slog.Logger
-	redisConfig redis.Config
-	sessionRepo ports.SessionRepository
-	usecase     ports.Usecase
+	log           *slog.Logger
+	redisConfig   redis.Config
+	rateLimitRepo ports.RateLimitRepository
+	usecase       ports.Usecase
 }
 
-func NewHandler(log *slog.Logger, redisConfig redis.Config, sessionRepo ports.SessionRepository, usecase ports.Usecase) *handler {
+func NewHandler(log *slog.Logger, redisConfig redis.Config, rateLimitRepo ports.RateLimitRepository, usecase ports.Usecase) *handler {
 	return &handler{
-		log:         log,
-		redisConfig: redisConfig,
-		sessionRepo: sessionRepo,
-		usecase:     usecase,
+		log:           log,
+		redisConfig:   redisConfig,
+		rateLimitRepo: rateLimitRepo,
+		usecase:       usecase,
 	}
 }
 
@@ -118,7 +118,7 @@ func (h *handler) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) Refresh(w http.ResponseWriter, r *http.Request) {
-	cookie, err := http.ParseSetCookie("refresh_token")
+	cookie, err := r.Cookie("refresh_token")
 	if err != nil {
 		http.Error(w, "Cannot get cookie", http.StatusUnauthorized)
 		return
@@ -175,7 +175,7 @@ func (h *handler) Refresh(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) Logout(w http.ResponseWriter, r *http.Request) {
-	cookie, err := http.ParseSetCookie("refresh_token")
+	cookie, err := r.Cookie("refresh_token")
 	if err != nil {
 		http.Error(w, "Cannot get cookie", http.StatusUnauthorized)
 		return

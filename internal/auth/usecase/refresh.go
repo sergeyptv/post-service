@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/sergeyptv/post_service/internal/auth/crypto/jwt"
 	"github.com/sergeyptv/post_service/internal/auth/domain"
 	"github.com/sergeyptv/post_service/internal/auth/repository"
 	"github.com/sergeyptv/post_service/internal/platform/logger"
@@ -35,7 +36,7 @@ func (a *auth) Refresh(ctx context.Context, staleRefreshToken string) (accessTok
 		return "", "", fmt.Errorf("%s: %w", op, err)
 	}
 
-	_, err = a.sessionRepo.Get(ctx, jti)
+	_, err = a.sessionRepo.GetToken(ctx, jti)
 	if err != nil {
 		if errors.Is(err, repository.ErrDbClientClosed) {
 			log.Error("Session db client is closed", logger.Error(err))
@@ -48,21 +49,28 @@ func (a *auth) Refresh(ctx context.Context, staleRefreshToken string) (accessTok
 		return "", "", fmt.Errorf("%s: %w", op, err)
 	}
 
-	_, accessToken, err = a.tokenSigner.NewToken(user.Uuid, user.Username, user.Email, "access")
+	err = a.sessionRepo.DeleteToken(ctx, jti)
+	if err != nil {
+		log.Error("Failed to delete refresh token from db", logger.Error(err))
+
+		return "", "", fmt.Errorf("%s: %w", op, err)
+	}
+
+	_, accessToken, err = a.tokenSigner.NewToken(user.Uuid, user.Username, user.Email, jwt.TypeAccess)
 	if err != nil {
 		log.Error("Failed to create access token", logger.Error(err))
 
 		return "", "", fmt.Errorf("%s: %w", op, err)
 	}
 
-	refreshTokenJti, refreshToken, err := a.tokenSigner.NewToken(user.Uuid, user.Username, user.Email, "refresh")
+	refreshTokenJti, refreshToken, err := a.tokenSigner.NewToken(user.Uuid, user.Username, user.Email, jwt.TypeRefresh)
 	if err != nil {
 		log.Error("Failed to create refresh token", logger.Error(err))
 
 		return "", "", fmt.Errorf("%s: %w", op, err)
 	}
 
-	_, err = a.sessionRepo.Set(ctx, refreshTokenJti, refreshToken, a.config.Redis.TokenTtl)
+	_, err = a.sessionRepo.SetToken(ctx, refreshTokenJti, refreshToken, a.config.Redis.TokenTtl)
 	if err != nil {
 		log.Error("Failed to set token to db", logger.Error(err))
 

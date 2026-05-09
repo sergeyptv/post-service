@@ -35,7 +35,7 @@ func (a *auth) Logout(ctx context.Context, refreshToken string) error {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	err = a.sessionRepo.Delete(ctx, jti)
+	err = a.sessionRepo.DeleteToken(ctx, jti)
 	if err != nil {
 		log.Error("Failed to delete token from db", logger.Error(err))
 

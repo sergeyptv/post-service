@@ -11,8 +11,8 @@ import (
 	"github.com/sergeyptv/post_service/internal/auth/repository/postgres"
 	"github.com/sergeyptv/post_service/internal/auth/repository/redis"
 	"github.com/sergeyptv/post_service/internal/auth/usecase"
-	"github.com/sergeyptv/post_service/internal/platform/grpcserver"
-	"github.com/sergeyptv/post_service/internal/platform/httpserver"
+	"github.com/sergeyptv/post_service/internal/platform/grpc_server"
+	"github.com/sergeyptv/post_service/internal/platform/http_server"
 	"github.com/sergeyptv/post_service/internal/platform/logger"
 	platformPostgres "github.com/sergeyptv/post_service/internal/platform/postgres"
 	platformRedis "github.com/sergeyptv/post_service/internal/platform/redis"
@@ -55,20 +55,21 @@ func appRun(log *slog.Logger, cfg *config.Config) error {
 	}
 	defer redisClient.Close()
 	redisSessionRepository := redis.NewRedisSessionRepository(redisClient)
+	redisRateLimitRepository := redis.NewRedisRateLimitRepository(redisClient)
 
 	txWrapper := transaction.New(pool.Db)
 
 	authUsecase := usecase.NewAuthUsecase(log, cfg, postgresUserRepository, postgresOutboxRepository, redisSessionRepository, jwtTokenSigner, txWrapper)
 
-	httpHandler := authHttp.NewHandler(log, cfg.Redis, redisSessionRepository, authUsecase)
+	httpHandler := authHttp.NewHandler(log, cfg.Redis, redisRateLimitRepository, authUsecase)
 	httpRouter := authHttp.NewRouter(httpHandler)
 
-	authHttpServer := httpserver.New(httpRouter.Mux, cfg.HttpServer)
+	authHttpServer := http_server.New(httpRouter.Mux, cfg.HttpServer)
 	defer authHttpServer.Close()
 
 	grpcHandler := grpc.NewHandler(authUsecase, cfg.Jwt)
 
-	grpcServer, err := grpcserver.NewServer(cfg.GrpcServer)
+	grpcServer, err := grpc_server.NewServer(cfg.GrpcServer)
 	if err != nil {
 		return err
 	}

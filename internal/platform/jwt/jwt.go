@@ -6,5 +6,4 @@ type Claims struct {
 	jwt.RegisteredClaims
 	Username string
 	Email    string
-	Kid      string
 }

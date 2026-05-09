@@ -4,8 +4,8 @@ import (
 	"github.com/ilyakaznacheev/cleanenv"
 	"github.com/sergeyptv/post_service/internal/platform/cache"
 	"github.com/sergeyptv/post_service/internal/platform/config"
-	"github.com/sergeyptv/post_service/internal/platform/grpcClient"
-	"github.com/sergeyptv/post_service/internal/platform/httpserver"
+	grpcClient "github.com/sergeyptv/post_service/internal/platform/grpc_client"
+	httpServer "github.com/sergeyptv/post_service/internal/platform/http_server"
 	"github.com/sergeyptv/post_service/internal/platform/jwt"
 	"github.com/sergeyptv/post_service/internal/platform/postgres"
 )
@@ -13,7 +13,7 @@ import (
 type Config struct {
 	App        config.App
 	Cache      cache.Config
-	Server     httpserver.Config
+	Server     httpServer.Config
 	GrpcClient grpcClient.Config
 	Postgres   postgres.Config
 	Jwt        jwt.ConfigParser

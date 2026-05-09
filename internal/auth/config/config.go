@@ -6,8 +6,8 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/ilyakaznacheev/cleanenv"
 	"github.com/sergeyptv/post_service/internal/platform/config"
-	"github.com/sergeyptv/post_service/internal/platform/grpcserver"
-	"github.com/sergeyptv/post_service/internal/platform/httpserver"
+	grpcServer "github.com/sergeyptv/post_service/internal/platform/grpc_server"
+	httpServer "github.com/sergeyptv/post_service/internal/platform/http_server"
 	authJwt "github.com/sergeyptv/post_service/internal/platform/jwt"
 	"github.com/sergeyptv/post_service/internal/platform/postgres"
 	"github.com/sergeyptv/post_service/internal/platform/redis"
@@ -19,8 +19,8 @@ type Config struct {
 	Jwt        authJwt.ConfigSigner
 	Postgres   postgres.Config
 	Redis      redis.Config
-	HttpServer httpserver.Config
-	GrpcServer grpcserver.Config
+	HttpServer httpServer.Config
+	GrpcServer grpcServer.Config
 }
 
 func MustLoad() *Config {

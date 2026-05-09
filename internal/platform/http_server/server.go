@@ -1,4 +1,4 @@
-package httpserver
+package http_server
 
 import (
 	"context"

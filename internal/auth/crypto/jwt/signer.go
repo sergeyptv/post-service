@@ -8,6 +8,11 @@ import (
 	"time"
 )
 
+const (
+	TypeAccess  = "access"
+	TypeRefresh = "refresh"
+)
+
 type jwtTokenSigner struct {
 	config platformJwt.ConfigSigner
 }
@@ -22,10 +27,10 @@ func (j *jwtTokenSigner) NewToken(userUuid, username, userEmail, tokenType strin
 	var ttl time.Duration
 
 	switch tokenType {
-	case "access":
+	case TypeAccess:
 		ttl = j.config.AccessTokenTtl
 
-	case "refresh":
+	case TypeRefresh:
 		ttl = j.config.RefreshTokenTtl
 
 	default:
@@ -43,9 +48,10 @@ func (j *jwtTokenSigner) NewToken(userUuid, username, userEmail, tokenType strin
 		},
 		Username: username,
 		Email:    userEmail,
-		Kid:      j.config.Kid,
-	},
-	)
+	})
+
+	t.Header["kid"] = j.config.Kid
+	t.Header["token_use"] = tokenType
 
 	signedToken, err = t.SignedString(j.config.PrivateKey)
 	if err != nil {
@@ -69,6 +75,11 @@ func (j *jwtTokenSigner) Parse(jwtToken string) (jti string, user domain.User, e
 		return "", domain.User{}, domain.ErrTokenInvalid
 	}
 
+	err = j.validateHeader(token.Header)
+	if err != nil {
+		return "", domain.User{}, err
+	}
+
 	err = j.validate(claims)
 	if err != nil {
 		return "", domain.User{}, err
@@ -86,6 +97,26 @@ func (j *jwtTokenSigner) Parse(jwtToken string) (jti string, user domain.User, e
 	}, nil
 }
 
+func (j *jwtTokenSigner) validateHeader(header map[string]any) error {
+	kid, ok := header["kid"]
+	if !ok || kid == "" {
+		return domain.ErrKidNotSet
+	}
+	if kid != j.config.Kid {
+		return domain.ErrKidIncorrect
+	}
+
+	tokenUse, ok := header["token_use"]
+	if !ok || tokenUse == "" {
+		return domain.ErrTokenUseNotSet
+	}
+	if tokenUse != TypeRefresh {
+		return domain.ErrTokenUseIncorrect
+	}
+
+	return nil
+}
+
 func (j *jwtTokenSigner) validate(claims platformJwt.Claims) error {
 	iss, err := claims.GetIssuer()
 	if err != nil {
@@ -93,14 +124,6 @@ func (j *jwtTokenSigner) validate(claims platformJwt.Claims) error {
 	}
 	if iss != j.config.Issuer {
 		return domain.ErrIssIncorrect
-	}
-
-	kid := claims.Kid
-	if kid == "" {
-		return domain.ErrKidNotSet
-	}
-	if kid != j.config.Kid {
-		return domain.ErrKidIncorrect
 	}
 
 	exp, err := claims.GetExpirationTime()

@@ -20,10 +20,10 @@ func NewRedisSessionRepository(client *platformRedis.Client) *redisSessionReposi
 	}
 }
 
-func (p *redisSessionRepository) Set(ctx context.Context, key string, val string, ttl time.Duration) (status string, err error) {
-	const op = "repository.redis.Set"
+func (r *redisSessionRepository) SetToken(ctx context.Context, jti string, refreshToken string, ttl time.Duration) (status string, err error) {
+	const op = "repository.redis.SetToken"
 
-	status, err = p.client.Db.Set(ctx, key, val, ttl).Result()
+	status, err = r.client.Db.Set(ctx, jti, refreshToken, ttl).Result()
 	if err != nil {
 		return "", fmt.Errorf("%s: %w", op, err)
 	}
@@ -31,10 +31,10 @@ func (p *redisSessionRepository) Set(ctx context.Context, key string, val string
 	return status, nil
 }
 
-func (p *redisSessionRepository) Get(ctx context.Context, key string) (val string, err error) {
-	const op = "repository.redis.Get"
+func (r *redisSessionRepository) GetToken(ctx context.Context, jti string) (refreshToken string, err error) {
+	const op = "repository.redis.GetToken"
 
-	err = p.client.Db.Get(ctx, key).Scan(&val)
+	err = r.client.Db.Get(ctx, jti).Scan(&refreshToken)
 	if err != nil {
 		if errors.Is(err, redis.ErrClosed) {
 			return "", fmt.Errorf("%s: %w", op, repository.ErrDbClientClosed)
@@ -42,13 +42,13 @@ func (p *redisSessionRepository) Get(ctx context.Context, key string) (val strin
 		return "", fmt.Errorf("%s: %w", op, err)
 	}
 
-	return val, nil
+	return refreshToken, nil
 }
 
-func (p *redisSessionRepository) Delete(ctx context.Context, key string) error {
-	const op = "repository.redis.Delete"
+func (r *redisSessionRepository) DeleteToken(ctx context.Context, jti string) error {
+	const op = "repository.redis.DeleteToken"
 
-	err := p.client.Db.Del(ctx, key).Err()
+	err := r.client.Db.Del(ctx, jti).Err()
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
