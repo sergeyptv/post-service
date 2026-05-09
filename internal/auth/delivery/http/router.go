@@ -6,10 +6,12 @@ type router struct {
 	Mux *http.ServeMux
 }
 
-func NewRouter(handler *handler) *router {
+func NewRouter(h *handler) *router {
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /api/register", handler.Register)
-	mux.HandleFunc("POST /api/login", handler.Login)
+	mux.HandleFunc("POST /api/register", h.RateLimiterMiddleware(http.HandlerFunc(h.Register)))
+	mux.HandleFunc("POST /api/login", h.RateLimiterMiddleware(http.HandlerFunc(h.Login)))
+	mux.HandleFunc("POST /api/logout", h.Logout)
+	mux.HandleFunc("POST /api/refresh", h.Refresh)
 
 	return &router{
 		Mux: mux,

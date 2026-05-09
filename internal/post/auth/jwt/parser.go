@@ -20,6 +20,8 @@ var (
 	ErrExpFired     = errors.New("exp time is fired")
 	ErrTokenInvalid = errors.New("token is invalid")
 	ErrGetPublicKey = errors.New("error getting public key")
+	ErrKidNotSet    = errors.New("kid is not set")
+	ErrKidIncorrect = errors.New("kid is incorrect")
 )
 
 type jwtTokenParser struct {
@@ -94,13 +96,21 @@ func (j *jwtTokenParser) refreshKey(ctx context.Context) (*rsa.PublicKey, error)
 
 func (j *jwtTokenParser) validate(claims platformJwt.Claims) error {
 	const op = "auth.jwt.validate"
-
+	
 	iss, err := claims.GetIssuer()
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	if iss != j.config.Issuer {
 		return fmt.Errorf("%s: %w", op, ErrIssIncorrect)
+	}
+
+	kid := claims.Kid
+	if kid == "" {
+		return fmt.Errorf("%s: %w", op, ErrKidNotSet)
+	}
+	if kid != j.config.Kid {
+		return fmt.Errorf("%s: %w", op, ErrKidIncorrect)
 	}
 
 	exp, err := claims.GetExpirationTime()

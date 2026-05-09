@@ -18,7 +18,6 @@ func NewJwtTokenSigner(config platformJwt.ConfigSigner) *jwtTokenSigner {
 	}
 }
 
-// TODO: kid for what?
 func (j *jwtTokenSigner) NewToken(userUuid, username, userEmail, tokenType string) (jti string, signedToken string, err error) {
 	var ttl time.Duration
 

@@ -19,14 +19,14 @@ func (h *handler) TokenCheckMiddleware(next http.Handler) http.Handler {
 		)
 
 		authHeader := r.Header.Get("Authorization")
-		authHedaerParts := strings.SplitN(authHeader, " ", 2)
+		authHeaderParts := strings.SplitN(authHeader, " ", 2)
 
-		if len(authHedaerParts) != 2 || !strings.EqualFold(authHedaerParts[0], "Bearer") {
+		if len(authHeaderParts) != 2 || !strings.EqualFold(authHeaderParts[0], "Bearer") {
 			http.Error(w, "Invalid authorization header", http.StatusUnauthorized)
 			return
 		}
 
-		tokenStr := authHedaerParts[1]
+		tokenStr := authHeaderParts[1]
 
 		user, err := h.jwtParser.Parse(r.Context(), tokenStr)
 		if err != nil {

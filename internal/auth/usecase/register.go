@@ -12,7 +12,7 @@ import (
 	"log/slog"
 )
 
-func (a *auth) Register(ctx context.Context, user domain.User, password string) (string, error) {
+func (a *auth) Register(ctx context.Context, user domain.User, password string) (userUuid string, err error) {
 	const op = "usecase.Register"
 
 	log := a.log.With(slog.String("op", op), slog.String("email", user.Email))
@@ -25,8 +25,6 @@ func (a *auth) Register(ctx context.Context, user domain.User, password string) 
 	}
 
 	user.PasswordHash = string(passwordHash)
-
-	var userUuid string
 
 	err = a.txWrapper.Wrap(ctx, func(ctx context.Context, tx pgx.Tx) error {
 		userUuid, terr := a.userRepo.CreateUser(ctx, tx, user)

@@ -9,11 +9,13 @@ import (
 	"github.com/sergeyptv/post_service/internal/auth/delivery/grpc"
 	authHttp "github.com/sergeyptv/post_service/internal/auth/delivery/http"
 	"github.com/sergeyptv/post_service/internal/auth/repository/postgres"
+	"github.com/sergeyptv/post_service/internal/auth/repository/redis"
 	"github.com/sergeyptv/post_service/internal/auth/usecase"
 	"github.com/sergeyptv/post_service/internal/platform/grpcserver"
 	"github.com/sergeyptv/post_service/internal/platform/httpserver"
 	"github.com/sergeyptv/post_service/internal/platform/logger"
 	platformPostgres "github.com/sergeyptv/post_service/internal/platform/postgres"
+	platformRedis "github.com/sergeyptv/post_service/internal/platform/redis"
 	"github.com/sergeyptv/post_service/internal/platform/transaction"
 	"log/slog"
 	"net/http"
@@ -44,16 +46,21 @@ func appRun(log *slog.Logger, cfg *config.Config) error {
 		return err
 	}
 	defer pool.Close()
-
 	postgresUserRepository := postgres.NewPostgresUserRepository(pool)
-	postgresTokenRepository := postgres.NewPostgresTokenRepository(pool)
 	postgresOutboxRepository := postgres.NewPostgresOutboxRepository(pool)
+
+	redisClient, err := platformRedis.New(ctx, cfg.Redis)
+	if err != nil {
+		return err
+	}
+	defer redisClient.Close()
+	redisSessionRepository := redis.NewRedisSessionRepository(redisClient)
 
 	txWrapper := transaction.New(pool.Db)
 
-	authUsecase := usecase.NewAuthUsecase(log, postgresUserRepository, postgresOutboxRepository, postgresTokenRepository, jwtTokenSigner, txWrapper)
+	authUsecase := usecase.NewAuthUsecase(log, cfg, postgresUserRepository, postgresOutboxRepository, redisSessionRepository, jwtTokenSigner, txWrapper)
 
-	httpHandler := authHttp.NewHandler(authUsecase)
+	httpHandler := authHttp.NewHandler(log, cfg.Redis, redisSessionRepository, authUsecase)
 	httpRouter := authHttp.NewRouter(httpHandler)
 
 	authHttpServer := httpserver.New(httpRouter.Mux, cfg.HttpServer)
@@ -88,6 +95,7 @@ func appRun(log *slog.Logger, cfg *config.Config) error {
 	ctxShutdown, cancelShutdown := context.WithTimeout(ctx, 5*time.Second)
 	defer cancelShutdown()
 
+	redisClient.Shutdown(ctx)
 	grpcServer.CloseListener()
 	grpcServer.Shutdown()
 	return authHttpServer.Shutdown(ctxShutdown)

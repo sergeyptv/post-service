@@ -11,7 +11,7 @@ import (
 	"log/slog"
 )
 
-func (a *auth) Login(ctx context.Context, email, password string) (string, error) {
+func (a *auth) Login(ctx context.Context, email, password string) (string, string, error) {
 	const op = "usecase.Login"
 
 	log := a.log.With(slog.String("op", op), slog.String("email", email))
@@ -21,51 +21,41 @@ func (a *auth) Login(ctx context.Context, email, password string) (string, error
 		if errors.Is(err, repository.ErrUserNotFound) {
 			log.Error("User not found", logger.Error(err))
 
-			return "", fmt.Errorf("%s: %w", op, domain.ErrInvalidCredentials)
+			return "", "", fmt.Errorf("%s: %w", op, domain.ErrInvalidCredentials)
 		}
 
 		log.Error("Failed to get user", logger.Error(err))
 
-		return "", fmt.Errorf("%s: %w", op, err)
+		return "", "", fmt.Errorf("%s: %w", op, err)
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password))
 	if err != nil {
 		log.Error("Invalid credentials", logger.Error(err))
 
-		return "", fmt.Errorf("%s: %w", op, domain.ErrInvalidCredentials)
+		return "", "", fmt.Errorf("%s: %w", op, domain.ErrInvalidCredentials)
 	}
 
-	token, err := a.tokenSigner.NewToken(user.Uuid, user.Username, user.Email)
+	_, accessToken, err := a.tokenSigner.NewToken(user.Uuid, user.Username, user.Email, "access")
 	if err != nil {
-		log.Error("Failed to create token", logger.Error(err))
+		log.Error("Failed to create access token", logger.Error(err))
 
-		return "", fmt.Errorf("%s: %w", op, err)
+		return "", "", fmt.Errorf("%s: %w", op, err)
 	}
 
-	jti, err := a.tokenRepo.GetToken(ctx, user.Uuid)
+	refreshTokenJti, refreshToken, err := a.tokenSigner.NewToken(user.Uuid, user.Username, user.Email, "refresh")
 	if err != nil {
-		if errors.Is(err, repository.ErrTokenNotFound) {
-			_, err = a.tokenRepo.CreateToken(ctx, user.Uuid, token)
-			if err != nil {
-				log.Error("Failed to save token to db", logger.Error(err))
+		log.Error("Failed to create refresh token", logger.Error(err))
 
-				return "", fmt.Errorf("%s: %w", op, err)
-			}
-
-			return token, nil
-		}
-		log.Error("Failed to get token from db", logger.Error(err))
-
-		return "", fmt.Errorf("%s: %w", op, err)
+		return "", "", fmt.Errorf("%s: %w", op, err)
 	}
 
-	err = a.tokenRepo.UpdateToken(ctx, jti, token)
+	_, err = a.sessionRepo.Set(ctx, refreshTokenJti, refreshToken, a.config.Redis.TokenTtl)
 	if err != nil {
-		log.Error("Failed to update token in db", logger.Error(err))
+		log.Error("Failed to set token to db", logger.Error(err))
 
-		return "", fmt.Errorf("%s: %w", op, err)
+		return "", "", fmt.Errorf("%s: %w", op, err)
 	}
 
-	return token, nil
+	return accessToken, refreshToken, nil
 }

@@ -2,10 +2,11 @@ package ports
 
 import (
 	"context"
+	"time"
 )
 
-type TokenRepository interface {
-	CreateToken(ctx context.Context, userUuid string, token string) (string, error)
-	GetToken(ctx context.Context, userUuid string) (string, error)
-	UpdateToken(ctx context.Context, jti string, newToken string) error
+type SessionRepository interface {
+	Set(ctx context.Context, key string, val string, ttl time.Duration) (status string, err error)
+	Get(ctx context.Context, key string) (val string, err error)
+	Delete(ctx context.Context, key string) error
 }
