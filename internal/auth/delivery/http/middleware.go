@@ -5,11 +5,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/sergeyptv/post_service/internal/auth/repository"
 	"io"
 	"log/slog"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -23,7 +23,7 @@ var (
 func (h *handler) RateLimiterMiddleware(next http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		h.log.Info("request",
-			slog.String("ip", r.URL.Hostname()),
+			slog.String("ip:port", r.RemoteAddr),
 			slog.String("method", r.Method),
 			slog.String("path", r.URL.Path),
 		)
@@ -55,7 +55,7 @@ func (h *handler) RateLimiterMiddleware(next http.Handler) http.HandlerFunc {
 
 		reqIp := strings.Split(r.RemoteAddr, ":")[0]
 
-		err = h.checkRateLimiter(r.Context(), reqIp, h.redisConfig.IpRateLimit, h.redisConfig.IpRateLimiterTtl)
+		err = h.checkRateLimiter(r.Context(), fmt.Sprintf("rl:ip:%s", reqIp), h.redisConfig.IpRateLimit, h.redisConfig.IpRateLimiterTtl)
 		if err != nil {
 			switch {
 			case errors.Is(err, errMaxLimitAchieved):
@@ -72,7 +72,7 @@ func (h *handler) RateLimiterMiddleware(next http.Handler) http.HandlerFunc {
 			}
 		}
 
-		err = h.checkRateLimiter(r.Context(), req.Email, h.redisConfig.EmailRateLimit, h.redisConfig.EmailRateLimiterTtl)
+		err = h.checkRateLimiter(r.Context(), fmt.Sprintf("rl:email:%s", req.Email), h.redisConfig.EmailRateLimit, h.redisConfig.EmailRateLimiterTtl)
 		if err != nil {
 			switch {
 			case errors.Is(err, errMaxLimitAchieved):
@@ -97,33 +97,13 @@ func (h *handler) RateLimiterMiddleware(next http.Handler) http.HandlerFunc {
 }
 
 func (h *handler) checkRateLimiter(ctx context.Context, limiter string, maxLimit int, ttl time.Duration) error {
-	limit, err := h.rateLimitRepo.GetLimit(ctx, limiter)
+	limit, err := h.rateLimitRepo.Increment(ctx, limiter, ttl)
 	if err != nil {
-		if errors.Is(err, repository.ErrDbClientClosed) {
-			return err
-		}
+		return err
+	}
 
-		_, err = h.rateLimitRepo.SetLimit(ctx, limiter, "1", ttl)
-		if err != nil {
-			return err
-		}
-	} else {
-		limitInt, err := strconv.Atoi(limit)
-		if err != nil {
-			return err
-		}
-
-		if maxLimit <= limitInt {
-			return errMaxLimitAchieved
-		}
-
-		limitInt++
-		limit = strconv.Itoa(limitInt)
-
-		_, err = h.rateLimitRepo.SetLimit(ctx, limiter, limit, ttl)
-		if err != nil {
-			return err
-		}
+	if limit >= maxLimit {
+		return errMaxLimitAchieved
 	}
 
 	return nil

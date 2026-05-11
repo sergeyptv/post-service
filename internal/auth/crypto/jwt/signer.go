@@ -65,7 +65,7 @@ func (j *jwtTokenSigner) Parse(jwtToken string) (jti string, user domain.User, e
 	var claims platformJwt.Claims
 
 	token, err := jwt.ParseWithClaims(jwtToken, &claims, func(*jwt.Token) (any, error) {
-		return nil, nil
+		return j.config.PublicKey, nil
 	}, jwt.WithValidMethods([]string{j.config.Algorithm}))
 	if err != nil {
 		return "", domain.User{}, err

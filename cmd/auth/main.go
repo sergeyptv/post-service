@@ -96,7 +96,6 @@ func appRun(log *slog.Logger, cfg *config.Config) error {
 	ctxShutdown, cancelShutdown := context.WithTimeout(ctx, 5*time.Second)
 	defer cancelShutdown()
 
-	redisClient.Shutdown(ctx)
 	grpcServer.CloseListener()
 	grpcServer.Shutdown()
 	return authHttpServer.Shutdown(ctxShutdown)

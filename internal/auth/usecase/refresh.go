@@ -16,7 +16,7 @@ func (a *auth) Refresh(ctx context.Context, staleRefreshToken string) (accessTok
 
 	log := a.log.With(slog.String("op", op))
 
-	jti, tokenUser, err := a.tokenSigner.Parse(staleRefreshToken)
+	staleJti, tokenUser, err := a.tokenSigner.Parse(staleRefreshToken)
 	if err != nil {
 		log.Error("Failed to parse refresh token", logger.Error(err))
 
@@ -36,26 +36,6 @@ func (a *auth) Refresh(ctx context.Context, staleRefreshToken string) (accessTok
 		return "", "", fmt.Errorf("%s: %w", op, err)
 	}
 
-	_, err = a.sessionRepo.GetToken(ctx, jti)
-	if err != nil {
-		if errors.Is(err, repository.ErrDbClientClosed) {
-			log.Error("Session db client is closed", logger.Error(err))
-
-			return "", "", fmt.Errorf("%s: %w", op, domain.ErrClientNotRespond)
-		}
-
-		log.Error("Failed to get refresh token from db", logger.Error(err))
-
-		return "", "", fmt.Errorf("%s: %w", op, err)
-	}
-
-	err = a.sessionRepo.DeleteToken(ctx, jti)
-	if err != nil {
-		log.Error("Failed to delete refresh token from db", logger.Error(err))
-
-		return "", "", fmt.Errorf("%s: %w", op, err)
-	}
-
 	_, accessToken, err = a.tokenSigner.NewToken(user.Uuid, user.Username, user.Email, jwt.TypeAccess)
 	if err != nil {
 		log.Error("Failed to create access token", logger.Error(err))
@@ -70,11 +50,17 @@ func (a *auth) Refresh(ctx context.Context, staleRefreshToken string) (accessTok
 		return "", "", fmt.Errorf("%s: %w", op, err)
 	}
 
-	_, err = a.sessionRepo.SetToken(ctx, refreshTokenJti, refreshToken, a.config.Redis.TokenTtl)
+	ok, err := a.sessionRepo.RotateToken(ctx, fmt.Sprintf("sess:%s", staleJti), fmt.Sprintf("sess:%s", refreshTokenJti), refreshToken, a.config.Redis.TokenTtl)
 	if err != nil {
-		log.Error("Failed to set token to db", logger.Error(err))
+		log.Error("Failed to rotate token in db", logger.Error(err))
 
 		return "", "", fmt.Errorf("%s: %w", op, err)
+	}
+
+	if !ok {
+		log.Warn("staleJti is invalid", logger.Error(domain.ErrTokenInvalid))
+
+		return "", "", fmt.Errorf("%s: %w", op, domain.ErrTokenInvalid)
 	}
 
 	return accessToken, refreshToken, nil

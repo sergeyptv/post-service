@@ -132,14 +132,6 @@ func (j *jwtTokenParser) Parse(ctx context.Context, jwtToken string) (domain.Use
 		return domain.User{}, fmt.Errorf("%s: %w", op, ErrTokenInvalid)
 	}
 
-	kid, ok := token.Header["kid"]
-	if !ok || kid == "" {
-		return domain.User{}, fmt.Errorf("%s: %w", op, ErrKidNotSet)
-	}
-	if kid != j.config.Kid {
-		return domain.User{}, fmt.Errorf("%s: %w", op, ErrKidIncorrect)
-	}
-
 	err = j.validate(claims)
 	if err != nil {
 		return domain.User{}, fmt.Errorf("%s: %w", op, err)

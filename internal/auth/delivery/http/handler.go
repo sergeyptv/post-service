@@ -132,17 +132,12 @@ func (h *handler) Refresh(w http.ResponseWriter, r *http.Request) {
 
 	accessToken, refreshToken, err := h.usecase.Refresh(r.Context(), cookie.Value)
 	if err != nil {
-		switch {
-		case errors.Is(err, domain.ErrTokenInvalid) ||
+		if errors.Is(err, domain.ErrTokenInvalid) ||
 			errors.Is(err, domain.ErrIssIncorrect) ||
 			errors.Is(err, domain.ErrKidNotSet) ||
 			errors.Is(err, domain.ErrKidIncorrect) ||
-			errors.Is(err, domain.ErrExpFired):
+			errors.Is(err, domain.ErrExpFired) {
 			http.Error(w, "token is invalid", http.StatusForbidden)
-			return
-
-		case errors.Is(err, domain.ErrClientNotRespond):
-			http.Error(w, "bad gateway", http.StatusBadGateway)
 			return
 		}
 

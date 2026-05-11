@@ -2,13 +2,20 @@ package redis
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"github.com/redis/go-redis/v9"
 	"github.com/sergeyptv/post_service/internal/auth/repository"
 	platformRedis "github.com/sergeyptv/post_service/internal/platform/redis"
 	"time"
 )
+
+var rateLimitScript = redis.NewScript(`
+	local current = redis.call("INCR", KEYS[1])
+	if current == 1 then
+		redis.call("PEXPIRE", KEYS[1], ARGV[1])
+	end
+	return current
+`)
 
 type redisRateLimitRepository struct {
 	client *platformRedis.Client
@@ -20,26 +27,17 @@ func NewRedisRateLimitRepository(client *platformRedis.Client) *redisRateLimitRe
 	}
 }
 
-func (p *redisRateLimitRepository) SetLimit(ctx context.Context, limiter string, limit string, ttl time.Duration) (status string, err error) {
-	const op = "repository.redis.SetLimit"
+func (p *redisRateLimitRepository) Increment(ctx context.Context, limiter string, ttl time.Duration) (limit int, err error) {
+	const op = "repository.redis.Increment"
 
-	status, err = p.client.Db.Set(ctx, limiter, limit, ttl).Result()
+	res, err := rateLimitScript.Run(ctx, p.client.Db, []string{limiter}, ttl.Milliseconds()).Result()
 	if err != nil {
-		return "", fmt.Errorf("%s: %w", op, err)
+		return 0, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return status, nil
-}
-
-func (p *redisRateLimitRepository) GetLimit(ctx context.Context, limiter string) (limit string, err error) {
-	const op = "repository.redis.GetLimit"
-
-	err = p.client.Db.Get(ctx, limiter).Scan(&limit)
-	if err != nil {
-		if errors.Is(err, redis.ErrClosed) {
-			return "", fmt.Errorf("%s: %w", op, repository.ErrDbClientClosed)
-		}
-		return "", fmt.Errorf("%s: %w", op, err)
+	limit, ok := res.(int)
+	if !ok {
+		return 0, fmt.Errorf("%s: %w", op, repository.ErrGetResult)
 	}
 
 	return limit, nil

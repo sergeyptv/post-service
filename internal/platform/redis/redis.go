@@ -48,7 +48,3 @@ func (r *Client) Close() {
 		fmt.Printf("Error close redis: %s\n", err)
 	}
 }
-
-func (r *Client) Shutdown(ctx context.Context) {
-	r.Db.Shutdown(ctx)
-}

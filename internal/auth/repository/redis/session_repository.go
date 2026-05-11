@@ -2,7 +2,6 @@ package redis
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"github.com/redis/go-redis/v9"
 	"github.com/sergeyptv/post_service/internal/auth/repository"
@@ -20,6 +19,18 @@ func NewRedisSessionRepository(client *platformRedis.Client) *redisSessionReposi
 	}
 }
 
+var refreshScript = redis.NewScript(`
+	local old = redis.call("GET", KEYS[1])
+	if not old then
+		return 0
+	end
+	
+	redis.call("DEL", KEYS[1])
+	redis.call("SET", KEYS[2], ARGV[1], "PX", ARGV[2])
+	
+	return 1
+`)
+
 func (r *redisSessionRepository) SetToken(ctx context.Context, jti string, refreshToken string, ttl time.Duration) (status string, err error) {
 	const op = "repository.redis.SetToken"
 
@@ -31,18 +42,20 @@ func (r *redisSessionRepository) SetToken(ctx context.Context, jti string, refre
 	return status, nil
 }
 
-func (r *redisSessionRepository) GetToken(ctx context.Context, jti string) (refreshToken string, err error) {
-	const op = "repository.redis.GetToken"
+func (r *redisSessionRepository) RotateToken(ctx context.Context, oldJti, newJti, refreshToken string, ttl time.Duration) (success bool, err error) {
+	const op = "repository.redis.RotateToken"
 
-	err = r.client.Db.Get(ctx, jti).Scan(&refreshToken)
+	res, err := refreshScript.Run(ctx, r.client.Db, []string{oldJti, newJti}, refreshToken, ttl).Result()
 	if err != nil {
-		if errors.Is(err, redis.ErrClosed) {
-			return "", fmt.Errorf("%s: %w", op, repository.ErrDbClientClosed)
-		}
-		return "", fmt.Errorf("%s: %w", op, err)
+		return false, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return refreshToken, nil
+	resInt64, ok := res.(int64)
+	if !ok {
+		return false, fmt.Errorf("%s: %w", op, repository.ErrGetResult)
+	}
+
+	return resInt64 == 1, nil
 }
 
 func (r *redisSessionRepository) DeleteToken(ctx context.Context, jti string) error {

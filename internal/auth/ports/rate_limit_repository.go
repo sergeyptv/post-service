@@ -6,6 +6,5 @@ import (
 )
 
 type RateLimitRepository interface {
-	SetLimit(ctx context.Context, limiter string, limit string, ttl time.Duration) (status string, err error)
-	GetLimit(ctx context.Context, limiter string) (limit string, err error)
+	Increment(ctx context.Context, limiter string, ttl time.Duration) (limit int, err error)
 }
