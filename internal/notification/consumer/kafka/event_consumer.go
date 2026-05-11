@@ -19,7 +19,7 @@ func NewKafkaEventConsumer(consumer *kafka_consume.Consumer) *kafkaEventConsumer
 }
 
 func (k *kafkaEventConsumer) Poll() (domain.UserRegisteredEvent, error) {
-	const op = "consumer.kafka.Pull"
+	const op = "consumer.kafka.Poll"
 
 	var userRegisteredEvent domain.UserRegisteredEvent
 

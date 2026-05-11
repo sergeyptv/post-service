@@ -3,6 +3,7 @@ package http
 import (
 	"encoding/json"
 	"errors"
+	"github.com/go-playground/validator/v10"
 	"github.com/sergeyptv/post_service/internal/post/domain"
 	"github.com/sergeyptv/post_service/internal/post/ports"
 	"log/slog"
@@ -11,6 +12,7 @@ import (
 
 type handler struct {
 	log       *slog.Logger
+	validate  *validator.Validate
 	usecase   ports.Usecase
 	jwtParser ports.JwtTokenParser
 }
@@ -18,13 +20,14 @@ type handler struct {
 func NewHandler(log *slog.Logger, usecase ports.Usecase, jwtParser ports.JwtTokenParser) *handler {
 	return &handler{
 		log:       log,
+		validate:  validator.New(validator.WithRequiredStructEnabled()),
 		usecase:   usecase,
 		jwtParser: jwtParser,
 	}
 }
 
 func (h *handler) Create(w http.ResponseWriter, r *http.Request) {
-	var post domain.Post
+	var post createPost
 
 	err := json.NewDecoder(r.Body).Decode(&post)
 	if err != nil {
@@ -32,7 +35,8 @@ func (h *handler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if post.Description == "" {
+	err = h.validate.Struct(post)
+	if err != nil {
 		http.Error(w, "Post cannot have empty description", http.StatusBadRequest)
 		return
 	}
@@ -44,7 +48,7 @@ func (h *handler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	postUuid, err := h.usecase.Create(r.Context(), user, post)
+	postUuid, err := h.usecase.Create(r.Context(), user, createPostToDomain(post))
 	if err != nil {
 		if errors.Is(err, domain.ErrBadGateway) {
 			http.Error(w, "Bad gateway", http.StatusBadGateway)
@@ -149,7 +153,7 @@ func (h *handler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) Update(w http.ResponseWriter, r *http.Request) {
-	var post domain.Post
+	var post updatePost
 
 	err := json.NewDecoder(r.Body).Decode(&post)
 	if err != nil {
@@ -159,12 +163,8 @@ func (h *handler) Update(w http.ResponseWriter, r *http.Request) {
 
 	post.Uuid = r.PathValue("uuid")
 
-	if post.Uuid == "" {
-		http.Error(w, "Post cannot have empty uuid", http.StatusBadRequest)
-		return
-	}
-
-	if post.Description == "" && len(post.Media) == 0 {
+	err = h.validate.Struct(post)
+	if err != nil {
 		http.Error(w, "Data for updating is not set", http.StatusBadRequest)
 		return
 	}
@@ -176,7 +176,7 @@ func (h *handler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.usecase.Update(r.Context(), user, post)
+	err = h.usecase.Update(r.Context(), user, updatePostToDomain(post))
 	if err != nil {
 		switch {
 		case errors.Is(err, domain.ErrPostNotExist):

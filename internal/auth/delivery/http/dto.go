@@ -3,7 +3,6 @@ package http
 import (
 	"errors"
 	"github.com/sergeyptv/post_service/internal/auth/domain"
-	"strings"
 )
 
 var (
@@ -11,9 +10,9 @@ var (
 )
 
 type userDtoRegister struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-	Email    string `json:"email"`
+	Username string `json:"username" validate:"required,min=3,max=30"`
+	Password string `json:"password" validate:"required,min=8,max=30"`
+	Email    string `json:"email" validate:"required,email,max=255"`
 }
 
 func userDtoRegisterToDomain(userDto userDtoRegister) domain.User {
@@ -23,27 +22,7 @@ func userDtoRegisterToDomain(userDto userDtoRegister) domain.User {
 	}
 }
 
-// TODO: add validation libruary
-func (u *userDtoRegister) Validate() error {
-	if strings.TrimSpace(u.Username) == "" ||
-		strings.TrimSpace(u.Email) == "" || !strings.Contains(u.Email, "@") ||
-		strings.TrimSpace(u.Password) == "" || len(u.Password) < 8 {
-		return errDtoInvalid
-	}
-
-	return nil
-}
-
 type userDtoLogin struct {
-	Password string `json:"password"`
-	Email    string `json:"email"`
-}
-
-func (u *userDtoLogin) Validate() error {
-	if strings.TrimSpace(u.Email) == "" || !strings.Contains(u.Email, "@") ||
-		strings.TrimSpace(u.Password) == "" || len(u.Password) < 8 {
-		return errDtoInvalid
-	}
-
-	return nil
+	Password string `json:"password" validate:"required,min=8,max=30"`
+	Email    string `json:"email" validate:"required,email,max=255"`
 }

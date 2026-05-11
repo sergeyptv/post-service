@@ -3,6 +3,7 @@ package http
 import (
 	"encoding/json"
 	"errors"
+	"github.com/go-playground/validator/v10"
 	"github.com/sergeyptv/post_service/internal/auth/domain"
 	"github.com/sergeyptv/post_service/internal/auth/ports"
 	"github.com/sergeyptv/post_service/internal/platform/redis"
@@ -12,6 +13,7 @@ import (
 
 type handler struct {
 	log           *slog.Logger
+	validate      *validator.Validate
 	redisConfig   redis.Config
 	rateLimitRepo ports.RateLimitRepository
 	usecase       ports.Usecase
@@ -20,6 +22,7 @@ type handler struct {
 func NewHandler(log *slog.Logger, redisConfig redis.Config, rateLimitRepo ports.RateLimitRepository, usecase ports.Usecase) *handler {
 	return &handler{
 		log:           log,
+		validate:      validator.New(validator.WithRequiredStructEnabled()),
 		redisConfig:   redisConfig,
 		rateLimitRepo: rateLimitRepo,
 		usecase:       usecase,
@@ -35,7 +38,7 @@ func (h *handler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = user.Validate()
+	err = h.validate.Struct(user)
 	if err != nil {
 		http.Error(w, "can not validate request", http.StatusBadRequest)
 		return
@@ -76,7 +79,7 @@ func (h *handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = user.Validate()
+	err = h.validate.Struct(user)
 	if err != nil {
 		http.Error(w, "can not validate request", http.StatusBadRequest)
 		return
