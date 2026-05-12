@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS post.article (
     user_uuid UUID NOT NULL,
     username TEXT NOT NULL,
     description TEXT NOT NULL,
-    media BYTEA,
+    media TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );

@@ -1,0 +1,12 @@
+package ports
+
+import (
+	"context"
+	"github.com/jackc/pgx/v5"
+	"github.com/sergeyptv/post_service/auth/internal/domain"
+)
+
+type UserRepository interface {
+	CreateUser(ctx context.Context, tx pgx.Tx, user domain.User) (string, error)
+	GetUserByEmail(ctx context.Context, email string) (domain.User, error)
+}
