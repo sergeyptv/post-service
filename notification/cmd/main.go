@@ -2,12 +2,14 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"github.com/sergeyptv/post_service/notification/internal/config"
 	"github.com/sergeyptv/post_service/notification/internal/consumer/kafka"
 	"github.com/sergeyptv/post_service/notification/internal/repository/postgres"
 	"github.com/sergeyptv/post_service/notification/internal/usecase"
 	"github.com/sergeyptv/post_service/platform/kafka_consume"
 	"github.com/sergeyptv/post_service/platform/logger"
+	"github.com/sergeyptv/post_service/platform/migrator"
 	platformPostgres "github.com/sergeyptv/post_service/platform/postgres"
 	"log/slog"
 	"os/signal"
@@ -16,6 +18,14 @@ import (
 
 func main() {
 	cfg := config.MustLoad()
+
+	dsn := fmt.Sprintf("%s:%s@%s:%s/%s?sslmode=disable",
+		cfg.Postgres.User, cfg.Postgres.Password, cfg.Postgres.Host, cfg.Postgres.Port, cfg.Postgres.DBName)
+
+	err := migrator.Up(cfg.Migrator.Dir, dsn)
+	if err != nil {
+		panic(err)
+	}
 
 	log := logger.SetupLogger(cfg.App.Env)
 

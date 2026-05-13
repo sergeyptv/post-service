@@ -1,0 +1,9 @@
+.git
+.idea
+.vscode
+**/.DS_Store
+**/*_test.go
+**/bin
+**/tmp
+**/dist
+**/*.log

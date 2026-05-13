@@ -8,6 +8,7 @@ import (
 	grpcServer "github.com/sergeyptv/post_service/platform/grpc_server"
 	httpServer "github.com/sergeyptv/post_service/platform/http_server"
 	authJwt "github.com/sergeyptv/post_service/platform/jwt"
+	"github.com/sergeyptv/post_service/platform/migrator"
 	"github.com/sergeyptv/post_service/platform/postgres"
 	"github.com/sergeyptv/post_service/platform/redis"
 	"os"
@@ -15,6 +16,7 @@ import (
 
 type Config struct {
 	App        config.App
+	Migrator   migrator.Config
 	Jwt        authJwt.ConfigSigner
 	Postgres   postgres.Config
 	Redis      redis.Config

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	authV1 "github.com/sergeyptv/post_service/api/pkg/proto/auth/v1"
 	"github.com/sergeyptv/post_service/auth/internal/config"
 	"github.com/sergeyptv/post_service/auth/internal/crypto/jwt"
@@ -14,6 +15,7 @@ import (
 	"github.com/sergeyptv/post_service/platform/grpc_server"
 	"github.com/sergeyptv/post_service/platform/http_server"
 	"github.com/sergeyptv/post_service/platform/logger"
+	"github.com/sergeyptv/post_service/platform/migrator"
 	platformPostgres "github.com/sergeyptv/post_service/platform/postgres"
 	platformRedis "github.com/sergeyptv/post_service/platform/redis"
 	"github.com/sergeyptv/post_service/platform/transaction"
@@ -28,9 +30,17 @@ import (
 func main() {
 	cfg := config.MustLoad()
 
+	dsn := fmt.Sprintf("%s:%s@%s:%s/%s?sslmode=disable",
+		cfg.Postgres.User, cfg.Postgres.Password, cfg.Postgres.Host, cfg.Postgres.Port, cfg.Postgres.DBName)
+
+	err := migrator.Up(cfg.Migrator.Dir, dsn)
+	if err != nil {
+		panic(err)
+	}
+
 	log := logger.SetupLogger(cfg.App.Env)
 
-	if err := appRun(log, cfg); err != nil {
+	if err = appRun(log, cfg); err != nil {
 		panic(err)
 	}
 }
