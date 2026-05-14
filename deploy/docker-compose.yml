@@ -9,9 +9,9 @@ services:
     ports:
       - "5433:5432"
     volumes:
-      - postgres_auth_data:/var/lib/postgresql/data
+      - postgres_auth_data:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d auth"]
+      test: ["CMD-SHELL", "pg_isready -U auth-user -d auth-db"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -22,15 +22,15 @@ services:
     image: postgres:18.3
     container_name: postgres-post
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: post
+      POSTGRES_USER: post-user
+      POSTGRES_PASSWORD: post-password
+      POSTGRES_DB: post-db
     ports:
       - "5434:5432"
     volumes:
-      - postgres_post_data:/var/lib/postgresql/data
+      - postgres_post_data:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d post"]
+      test: ["CMD-SHELL", "pg_isready -U post-user -d post-db"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -41,15 +41,15 @@ services:
     image: postgres:18.3
     container_name: postgres-notification
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: notification
+      POSTGRES_USER: notification-user
+      POSTGRES_PASSWORD: notification-password
+      POSTGRES_DB: notification-db
     ports:
       - "5435:5432"
     volumes:
-      - postgres_notification_data:/var/lib/postgresql/data
+      - postgres_notification_data:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d notification"]
+      test: ["CMD-SHELL", "pg_isready -U notification-user -d notification-db"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -78,7 +78,7 @@ services:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
     healthcheck:
-      test: ["CMD-SHELL", "echo ruok | nc localhost 2181 | grep imok"]
+      test: ["CMD-SHELL", "bash -c 'echo ruok > /dev/tcp/localhost/2181 && echo imok' | grep -q imok"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -157,7 +157,7 @@ services:
       MIGRATIONS_DIR: /app/migrations/notification
     container_name: migrate-notification
     depends_on:
-      postgres-auth:
+      postgres-notification:
         condition: service_healthy
     networks:
       - post-service-network
@@ -176,14 +176,8 @@ services:
         condition: service_completed_successfully
       redis:
         condition: service_healthy
-    environment:
-      APP_ENV: docker
-      AUTH_HTTP_ADDR: :8081
-      AUTH_GRPC_ADDR: :50051
-      AUTH_DB_DSN: postgres://postgres:postgres@postgres-auth:5432/auth?sslmode=disable
-      AUTH_REDIS_ADDR: redis:6379
     ports:
-      - "8081:8081"
+      - "8080:8080"
       - "50051:50051"
     restart: unless-stopped
     networks:
@@ -203,11 +197,6 @@ services:
         condition: service_completed_successfully
       kafka:
         condition: service_healthy
-    environment:
-      APP_ENV: docker
-      OUTBOX_DB_DSN: postgres://postgres:postgres@postgres-auth:5432/auth?sslmode=disable
-      KAFKA_BROKERS: kafka:9092
-      KAFKA_TOPIC: notifications
     restart: unless-stopped
     networks:
       - post-service-network
@@ -226,10 +215,6 @@ services:
         condition: service_completed_successfully
       kafka:
         condition: service_healthy
-    environment:
-      APP_ENV: docker
-      KAFKA_BROKERS: kafka:9092
-      KAFKA_TOPIC: notifications
     restart: unless-stopped
     networks:
       - post-service-network
@@ -248,11 +233,6 @@ services:
         condition: service_completed_successfully
       auth:
         condition: service_started
-    environment:
-      APP_ENV: docker
-      POST_HTTP_ADDR: :8082
-      POST_DB_DSN: postgres://postgres:postgres@postgres-post:5432/post?sslmode=disable
-      AUTH_GRPC_ADDR: auth:50051
     ports:
       - "8082:8082"
     restart: unless-stopped

@@ -1,8 +1,10 @@
-FROM golang:1.26.3-alpine3.23 AS builder
+FROM golang:1.26.3-bookworm AS builder
 
 WORKDIR /src
 
-RUN apk add --no-cache ca-certificates git
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates git librdkafka-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY go.mod go.sum ./
 
@@ -12,14 +14,19 @@ COPY . .
 
 ARG SERVICE
 
+ENV CGO_CFLAGS="-I/usr/include"
+ENV CGO_LDFLAGS="-L/usr/lib -lrdkafka"
+
 RUN test -n "$SERVICE" \
-    && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
-    go build -trimpath -ldflags="-s -w" -o /out/app ./"$SERVICE"
+    && CGO_ENABLED=1 GOOS=linux \
+    go build -tags dynamic -trimpath -ldflags="-s -w" -o /out/app ./"$SERVICE"
 
-FROM alpine:3.23
+FROM debian:bookworm-slim
 
-RUN apk add --no-cache ca-certificates tzdata \
-    && adduser -D -g '' appuser
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates tzdata librdkafka-dev \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd -m -s /bin/false appuser
 
 WORKDIR /app
 
