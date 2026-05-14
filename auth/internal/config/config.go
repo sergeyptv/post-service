@@ -2,21 +2,20 @@ package config
 
 import (
 	"crypto/rsa"
+	"os"
+
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/ilyakaznacheev/cleanenv"
 	"github.com/sergeyptv/post_service/platform/config"
 	grpcServer "github.com/sergeyptv/post_service/platform/grpc_server"
 	httpServer "github.com/sergeyptv/post_service/platform/http_server"
 	authJwt "github.com/sergeyptv/post_service/platform/jwt"
-	"github.com/sergeyptv/post_service/platform/migrator"
 	"github.com/sergeyptv/post_service/platform/postgres"
 	"github.com/sergeyptv/post_service/platform/redis"
-	"os"
 )
 
 type Config struct {
 	App        config.App
-	Migrator   migrator.Config
 	Jwt        authJwt.ConfigSigner
 	Postgres   postgres.Config
 	Redis      redis.Config

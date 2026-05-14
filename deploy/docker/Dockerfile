@@ -1,4 +1,4 @@
-FROM golang:1.26.0 AS builder
+FROM golang:1.26.3-alpine3.23 AS builder
 
 WORKDIR /src
 
@@ -14,7 +14,7 @@ ARG SERVICE
 
 RUN test -n "$SERVICE" \
     && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
-    go build -trimpath -ldflags="-s -w" -o /out/app ./${SERVICE}/cmd/main.go
+    go build -trimpath -ldflags="-s -w" -o /out/app ./"$SERVICE"
 
 FROM alpine:3.23
 
@@ -26,6 +26,8 @@ WORKDIR /app
 COPY --from=builder /out/app /app/app
 
 COPY migrations /app/migrations
+
+COPY certs /app/certs
 
 USER appuser
 

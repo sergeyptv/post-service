@@ -2,45 +2,27 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"log/slog"
+	"os/signal"
+	"syscall"
+
 	"github.com/sergeyptv/post_service/notification/internal/config"
 	"github.com/sergeyptv/post_service/notification/internal/consumer/kafka"
 	"github.com/sergeyptv/post_service/notification/internal/repository/postgres"
 	"github.com/sergeyptv/post_service/notification/internal/usecase"
 	"github.com/sergeyptv/post_service/platform/kafka_consume"
 	"github.com/sergeyptv/post_service/platform/logger"
-	"github.com/sergeyptv/post_service/platform/migrator"
 	platformPostgres "github.com/sergeyptv/post_service/platform/postgres"
-	"log/slog"
-	"os/signal"
-	"syscall"
 )
 
 func main() {
 	cfg := config.MustLoad()
 
-	err := runMigrations(cfg)
-	if err != nil {
-		panic(err)
-	}
-
 	log := logger.SetupLogger(cfg.App.Env)
 
-	if err = appRun(log, cfg); err != nil {
+	if err := appRun(log, cfg); err != nil {
 		panic(err)
 	}
-}
-
-func runMigrations(cfg *config.Config) error {
-	dsn := fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=disable",
-		cfg.Postgres.User, cfg.Postgres.Password, cfg.Postgres.Host, cfg.Postgres.Port, cfg.Postgres.DBName)
-
-	err := migrator.Up(cfg.Migrator.Dir, dsn)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func appRun(log *slog.Logger, cfg *config.Config) error {

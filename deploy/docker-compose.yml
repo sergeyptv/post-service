@@ -1,11 +1,11 @@
 services:
   postgres-auth:
-    image: postgres:16-alpine
+    image: postgres:18.3
     container_name: postgres-auth
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: auth
+      POSTGRES_USER: auth-user
+      POSTGRES_PASSWORD: auth-password
+      POSTGRES_DB: auth-db
     ports:
       - "5433:5432"
     volumes:
@@ -15,9 +15,11 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    networks:
+      - post-service-network
 
   postgres-post:
-    image: postgres:16-alpine
+    image: postgres:18.3
     container_name: postgres-post
     environment:
       POSTGRES_USER: postgres
@@ -32,9 +34,30 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    networks:
+      - post-service-network
+
+  postgres-notification:
+    image: postgres:18.3
+    container_name: postgres-notification
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: notification
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres_notification_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d notification"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - post-service-network
 
   redis:
-    image: redis:7-alpine
+    image: redis:8.6.3
     container_name: redis
     ports:
       - "6379:6379"
@@ -45,9 +68,11 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+    networks:
+      - post-service-network
 
   zookeeper:
-    image: confluentinc/cp-zookeeper:7.6.1
+    image: confluentinc/cp-zookeeper:7.7.8
     container_name: zookeeper
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
@@ -57,9 +82,11 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    networks:
+      - post-service-network
 
   kafka:
-    image: confluentinc/cp-kafka:7.6.1
+    image: confluentinc/cp-kafka:7.7.8
     container_name: kafka
     depends_on:
       zookeeper:
@@ -81,17 +108,72 @@ services:
       interval: 10s
       timeout: 10s
       retries: 15
+    networks:
+      - post-service-network
 
-  auth:
+  migrate-auth:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: deploy/docker/Dockerfile
       args:
-        SERVICE: auth
-    container_name: auth
+        SERVICE: migrator/cmd
+    env_file:
+      - ../configs/auth.env
+    environment:
+      MIGRATIONS_DIR: /app/migrations/auth
+    container_name: migrate-auth
     depends_on:
       postgres-auth:
         condition: service_healthy
+    networks:
+      - post-service-network
+
+  migrate-post:
+    build:
+      context: ..
+      dockerfile: deploy/docker/Dockerfile
+      args:
+        SERVICE: migrator/cmd
+    env_file:
+      - ../configs/post.env
+    environment:
+      MIGRATIONS_DIR: /app/migrations/post
+    container_name: migrate-post
+    depends_on:
+      postgres-post:
+        condition: service_healthy
+    networks:
+      - post-service-network
+
+  migrate-notification:
+    build:
+      context: ..
+      dockerfile: deploy/docker/Dockerfile
+      args:
+        SERVICE: migrator/cmd
+    env_file:
+      - ../configs/notification.env
+    environment:
+      MIGRATIONS_DIR: /app/migrations/notification
+    container_name: migrate-notification
+    depends_on:
+      postgres-auth:
+        condition: service_healthy
+    networks:
+      - post-service-network
+
+  auth:
+    build:
+      context: ..
+      dockerfile: deploy/docker/Dockerfile
+      args:
+        SERVICE: auth/cmd
+    env_file:
+      - ../configs/auth.env
+    container_name: auth
+    depends_on:
+      migrate-auth:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
     environment:
@@ -104,17 +186,21 @@ services:
       - "8081:8081"
       - "50051:50051"
     restart: unless-stopped
+    networks:
+      - post-service-network
 
   outbox:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: deploy/docker/Dockerfile
       args:
-        SERVICE: outbox
+        SERVICE: outbox/cmd
+    env_file:
+      - ../configs/outbox.env
     container_name: outbox
     depends_on:
-      postgres-auth:
-        condition: service_healthy
+      migrate-auth:
+        condition: service_completed_successfully
       kafka:
         condition: service_healthy
     environment:
@@ -123,15 +209,21 @@ services:
       KAFKA_BROKERS: kafka:9092
       KAFKA_TOPIC: notifications
     restart: unless-stopped
+    networks:
+      - post-service-network
 
   notification:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: deploy/docker/Dockerfile
       args:
-        SERVICE: notification
+        SERVICE: notification/cmd
+    env_file:
+      - ../configs/notification.env
     container_name: notification
     depends_on:
+      migrate-notification:
+        condition: service_completed_successfully
       kafka:
         condition: service_healthy
     environment:
@@ -139,17 +231,21 @@ services:
       KAFKA_BROKERS: kafka:9092
       KAFKA_TOPIC: notifications
     restart: unless-stopped
+    networks:
+      - post-service-network
 
   post:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: deploy/docker/Dockerfile
       args:
-        SERVICE: post
+        SERVICE: post/cmd
+    env_file:
+      - ../configs/post.env
     container_name: post
     depends_on:
-      postgres-post:
-        condition: service_healthy
+      migrate-post:
+        condition: service_completed_successfully
       auth:
         condition: service_started
     environment:
@@ -160,8 +256,15 @@ services:
     ports:
       - "8082:8082"
     restart: unless-stopped
+    networks:
+      - post-service-network
 
 volumes:
   postgres_auth_data:
   postgres_post_data:
+  postgres_notification_data:
   redis_data:
+
+networks:
+  post-service-network:
+    driver: bridge

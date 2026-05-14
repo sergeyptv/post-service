@@ -3,12 +3,17 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
+	"log/slog"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
 	authV1 "github.com/sergeyptv/post_service/api/pkg/proto/auth/v1"
 	grpcClient "github.com/sergeyptv/post_service/platform/grpc_client"
 	httpServer "github.com/sergeyptv/post_service/platform/http_server"
 	"github.com/sergeyptv/post_service/platform/logger"
-	"github.com/sergeyptv/post_service/platform/migrator"
 	platformPostgres "github.com/sergeyptv/post_service/platform/postgres"
 	authGrpcClient "github.com/sergeyptv/post_service/post/internal/auth/client"
 	"github.com/sergeyptv/post_service/post/internal/auth/jwt"
@@ -16,39 +21,16 @@ import (
 	http3 "github.com/sergeyptv/post_service/post/internal/delivery/http"
 	"github.com/sergeyptv/post_service/post/internal/repository/postgres"
 	"github.com/sergeyptv/post_service/post/internal/usecase"
-	"log/slog"
-	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
 )
 
 func main() {
 	cfg := config.MustLoad()
 
-	err := runMigrations(cfg)
-	if err != nil {
-		panic(err)
-	}
-
 	log := logger.SetupLogger(cfg.App.Env)
 
-	if err = appRun(log, cfg); err != nil {
+	if err := appRun(log, cfg); err != nil {
 		panic(err)
 	}
-}
-
-func runMigrations(cfg *config.Config) error {
-	dsn := fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=disable",
-		cfg.Postgres.User, cfg.Postgres.Password, cfg.Postgres.Host, cfg.Postgres.Port, cfg.Postgres.DBName)
-
-	err := migrator.Up(cfg.Migrator.Dir, dsn)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func appRun(log *slog.Logger, cfg *config.Config) error {
@@ -82,7 +64,7 @@ func appRun(log *slog.Logger, cfg *config.Config) error {
 	postServer := httpServer.New(router.Mux, cfg.Server)
 	defer postServer.Close()
 
-	stop := make(chan os.Signal)
+	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
 
 	go func() {

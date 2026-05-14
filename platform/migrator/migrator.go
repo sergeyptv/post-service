@@ -2,13 +2,14 @@ package migrator
 
 import (
 	"database/sql"
+	"time"
+
 	_ "github.com/lib/pq"
 	"github.com/pressly/goose/v3"
-	"time"
 )
 
 type Config struct {
-	Dir string `env:"DIR" env-prefix:"MIGRATIONS_" env-required`
+	MigrationsDir string `env:"DIR" env-prefix:"MIGRATIONS_" env-required`
 }
 
 func Up(dir, dsn string) error {
@@ -17,6 +18,10 @@ func Up(dir, dsn string) error {
 		return err
 	}
 	defer db.Close()
+
+	db.SetMaxOpenConns(5)
+	db.SetMaxIdleConns(5)
+	db.SetConnMaxLifetime(time.Minute)
 
 	for i := 0; i < 10; i++ {
 		if err = db.Ping(); err == nil {
