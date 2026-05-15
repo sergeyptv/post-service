@@ -14,9 +14,6 @@ COPY . .
 
 ARG SERVICE
 
-ENV CGO_CFLAGS="-I/usr/include"
-ENV CGO_LDFLAGS="-L/usr/lib -lrdkafka"
-
 RUN test -n "$SERVICE" \
     && CGO_ENABLED=1 GOOS=linux \
     go build -tags dynamic -trimpath -ldflags="-s -w" -o /out/app ./"$SERVICE"
@@ -30,11 +27,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-COPY --from=builder /out/app /app/app
+COPY --chown=appuser:appuser --from=builder /out/app /app/app
 
-COPY migrations /app/migrations
+COPY --chown=appuser:appuser migrations /app/migrations
 
-COPY certs /app/certs
+COPY --chown=appuser:appuser certs /app/certs
 
 USER appuser
 
