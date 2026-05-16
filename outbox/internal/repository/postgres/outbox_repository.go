@@ -39,10 +39,11 @@ func (p *postgresOutboxRepository) GetPending(ctx context.Context, tx postgres.D
             		    status = 'processing' 
             		    AND updated_at < now() - interval '30 seconds'
             		)
+            		)
             		FOR UPDATE SKIP LOCKED
             		LIMIT $1
             	)
-        		RETURNING uuid, version, user_uuid, user_email, registered_at`,
+        		RETURNING uuid, version, user_uuid, user_email, registered_at, updated_at`,
 		limit)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -54,7 +55,7 @@ func (p *postgresOutboxRepository) GetPending(ctx context.Context, tx postgres.D
 	defer rows.Close()
 
 	for rows.Next() {
-		err = rows.Scan(&event.Uuid, &event.Version, &event.UserUuid, &event.UserEmail, &event.RegisteredAt)
+		err = rows.Scan(&event.Uuid, &event.Version, &event.UserUuid, &event.UserEmail, &event.RegisteredAt, &event.UpdatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}

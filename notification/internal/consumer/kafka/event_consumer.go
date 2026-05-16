@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/sergeyptv/post_service/notification/internal/domain"
 	"github.com/sergeyptv/post_service/platform/kafka_consume"
-	"time"
 )
 
 type kafkaEventConsumer struct {
@@ -23,7 +22,7 @@ func (k *kafkaEventConsumer) Poll() (domain.UserRegisteredEvent, error) {
 
 	var userRegisteredEvent domain.UserRegisteredEvent
 
-	msg, err := k.consumer.Kafka.ReadMessage(time.Second)
+	msg, err := k.consumer.Kafka.ReadMessage(-1)
 	if err != nil {
 		return domain.UserRegisteredEvent{}, fmt.Errorf("%s: %w", op, err)
 	}

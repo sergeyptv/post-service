@@ -6,14 +6,14 @@ import (
 )
 
 type ConfigSigner struct {
-	PrivateKeyPath  string `env:"PRIVATE_KEY_PATH" env-prefix:"TOKEN_" env-required`
+	PrivateKeyPath  string `env:"PRIVATE_KEY_PATH" env-required`
 	PrivateKey      *rsa.PrivateKey
-	PublicKeyPath   string `env:"PUBLIC_KEY_PATH" env-prefix:"TOKEN_" env-required`
+	PublicKeyPath   string `env:"PUBLIC_KEY_PATH" env-required`
 	PublicKey       *rsa.PublicKey
-	Issuer          string        `env:"ISSUER" env-prefix:"TOKEN_" env-required`
-	Format          string        `env:"FORMAT" env-prefix:"TOKEN_" env-required`
-	Algorithm       string        `env:"ALGORITHM" env-prefix:"TOKEN_" env-required`
-	Kid             string        `env:"KID" env-prefix:"TOKEN_" env-required`
-	AccessTokenTtl  time.Duration `env:"ACCESS_TTL" env-prefix:"TOKEN_" env-required`
-	RefreshTokenTtl time.Duration `env:"REFRESH_TTL" env-prefix:"TOKEN_" env-required`
+	Issuer          string        `env:"ISSUER" env-required`
+	Format          string        `env:"FORMAT" env-required`
+	Algorithm       string        `env:"ALGORITHM" env-required`
+	Kid             string        `env:"KID" env-required`
+	AccessTokenTtl  time.Duration `env:"ACCESS_TTL" env-required`
+	RefreshTokenTtl time.Duration `env:"REFRESH_TTL" env-required`
 }

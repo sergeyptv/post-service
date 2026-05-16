@@ -7,8 +7,9 @@ import (
 )
 
 type Config struct {
-	Addr  []string `env:"ADDR" env-prefix:"KAFKA_CONSUMER_" env-required`
-	Topic string   `env:"TOPIC" env-prefix:"KAFKA_CONSUMER_" env-required`
+	Addr    string `env:"ADDR" env-required`
+	Topic   string `env:"TOPIC" env-required`
+	GroupId string `env:"GROUP_ID" env-required`
 }
 
 type Consumer struct {
@@ -20,6 +21,7 @@ type Consumer struct {
 func NewConsumer(ctx context.Context, c Config) (*Consumer, error) {
 	consumer, err := kafka.NewConsumer(&kafka.ConfigMap{
 		"bootstrap.servers": c.Addr,
+		"group.id":          c.GroupId,
 	})
 	if err != nil {
 		return nil, err

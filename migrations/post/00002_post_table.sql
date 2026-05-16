@@ -1,8 +1,6 @@
 -- +goose Up
-CREATE EXTENSION IF NOT EXISTS pg_uuidv7;
-
 CREATE TABLE IF NOT EXISTS post.article (
-    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
+    uuid UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_uuid UUID NOT NULL,
     username TEXT NOT NULL,
     description TEXT NOT NULL,
@@ -19,5 +17,3 @@ DROP INDEX IF EXISTS idx_article_user_uuid;
 DROP INDEX IF EXISTS idx_article_uuid_user_uuid;
 
 DROP TABLE IF EXISTS post.article;
-
-DROP EXTENSION IF EXISTS pg_uuidv7;

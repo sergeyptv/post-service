@@ -8,6 +8,7 @@ import (
 	"github.com/sergeyptv/post_service/platform/postgres"
 	"github.com/sergeyptv/post_service/post/internal/domain"
 	"strings"
+	"time"
 )
 
 type postgresPostRepository struct {
@@ -24,12 +25,49 @@ func (p *postgresPostRepository) Create(ctx context.Context, userUuid, username 
 	const op = "repository.postgres.Create"
 
 	var postUuid string
+	keys := make([]string, 0)
+	vals := make([]any, 0)
+	wildcards := make([]string, 0)
+	idx := 1
 
-	err := p.db.QueryRow(ctx,
-		`INSERT INTO post.article (user_uuid, username, description, media, created_at)
-				VALUES ($1, $2, $3, $4, now())
-				RETURNING uuid`,
-		userUuid, username, post.Description, post.Media).Scan(&postUuid)
+	keys = append(keys, "user_uuid")
+	vals = append(vals, userUuid)
+	wildcards = append(wildcards, fmt.Sprintf("$%d", idx))
+	idx++
+
+	keys = append(keys, "username")
+	vals = append(vals, username)
+	wildcards = append(wildcards, fmt.Sprintf("$%d", idx))
+	idx++
+
+	if post.Description != "" {
+		keys = append(keys, "description")
+		vals = append(vals, post.Description)
+		wildcards = append(wildcards, fmt.Sprintf("$%d", idx))
+		idx++
+	}
+
+	if post.Media != nil {
+		keys = append(keys, "media")
+		vals = append(vals, post.Media)
+		wildcards = append(wildcards, fmt.Sprintf("$%d", idx))
+		idx++
+	}
+
+	keys = append(keys, "created_at")
+	vals = append(vals, time.Now().UTC())
+	wildcards = append(wildcards, fmt.Sprintf("$%d", idx))
+	idx++
+
+	keys = append(keys, "updated_at")
+	vals = append(vals, time.Now().UTC())
+	wildcards = append(wildcards, fmt.Sprintf("$%d", idx))
+	idx++
+
+	query := "INSERT INTO post.article (" + strings.Join(keys, ", ") + ")"
+	query += " VALUES (" + strings.Join(wildcards, ", ") + ") RETURNING uuid"
+
+	err := p.db.QueryRow(ctx, query, vals...).Scan(&postUuid)
 	if err != nil {
 		return "", fmt.Errorf("%s: %w", op, err)
 	}
@@ -109,18 +147,23 @@ func (p *postgresPostRepository) Update(ctx context.Context, userUuid string, po
 		vals = append(vals, post.Description)
 		idx++
 	}
-	if len(post.Media) > 0 {
+
+	if post.Media != nil {
 		setParts = append(setParts, fmt.Sprintf("media = $%d", idx))
 		vals = append(vals, post.Media)
 		idx++
 	}
+
+	setParts = append(setParts, fmt.Sprintf("updated_at = $%d", idx))
+	vals = append(vals, time.Now().UTC())
+	idx++
 
 	query := "UPDATE post.article SET " + strings.Join(setParts, ", ")
 	query += fmt.Sprintf(" WHERE uuid = $%d AND user_uuid = $%d", idx, idx+1)
 
 	vals = append(vals, post.Uuid, userUuid)
 
-	cmdTag, err := p.db.Exec(ctx, query, vals)
+	cmdTag, err := p.db.Exec(ctx, query, vals...)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}

@@ -7,7 +7,7 @@ import (
 )
 
 type Config struct {
-	Port string `env:"PORT" env-prefix:"GRPC_SERVER_" env-required`
+	Port string `env:"PORT" env-required`
 }
 
 type Server struct {

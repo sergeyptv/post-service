@@ -1,6 +1,4 @@
 -- +goose Up
-CREATE EXTENSION IF NOT EXISTS pg_uuidv7;
-
 CREATE TABLE IF NOT EXISTS notification.processed_event (
     uuid UUID PRIMARY KEY,
     event JSONB NOT NULL,
@@ -18,5 +16,3 @@ DROP INDEX IF EXISTS idx_processed_event_polling;
 ALTER TABLE notification.processed_event DROP CONSTRAINT IF EXISTS chk_processed_event_status;
 
 DROP TABLE IF EXISTS notification.processed_event;
-
-DROP EXTENSION IF EXISTS pg_uuidv7;

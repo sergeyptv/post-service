@@ -11,12 +11,12 @@ import (
 )
 
 type Config struct {
-	App        config.App
-	Cache      cache.Config
-	Server     httpServer.Config
-	GrpcClient grpcClient.Config
-	Postgres   postgres.Config
-	Jwt        jwt.ConfigParser
+	App        config.App        `env-prefix:"APP_"`
+	Cache      cache.Config      `env-prefix:"CACHE_"`
+	Server     httpServer.Config `env-prefix:"HTTP_"`
+	GrpcClient grpcClient.Config `env-prefix:"GRPC_CLIENT_"`
+	Postgres   postgres.Config   `env-prefix:"POSTGRES_"`
+	Jwt        jwt.ConfigParser  `env-prefix:"TOKEN_"`
 }
 
 func MustLoad() *Config {

@@ -6,7 +6,7 @@ type Post struct {
 	Uuid        string    `json:"uuid"`
 	Username    string    `json:"username"`
 	Description string    `json:"description"`
-	Media       []string  `json:"media"`
+	Media       *string   `json:"media"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }

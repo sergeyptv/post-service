@@ -8,8 +8,8 @@ import (
 )
 
 type Config struct {
-	Host string `env:"HOST" env-prefix:"HTTP_" env-required`
-	Port string `env:"PORT" env-prefix:"HTTP_" env-required`
+	Host string `env:"HOST" env-required`
+	Port string `env:"PORT" env-required`
 }
 
 type Server struct {

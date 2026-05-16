@@ -1,8 +1,6 @@
 -- +goose Up
-CREATE EXTENSION IF NOT EXISTS pg_uuidv7;
-
 CREATE TABLE IF NOT EXISTS auth.users (
-    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
+    uuid UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     username TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
     email TEXT NOT NULL UNIQUE
@@ -14,5 +12,3 @@ CREATE INDEX IF NOT EXISTS idx_users_email ON auth.users(email);
 DROP INDEX IF EXISTS auth.idx_users_email;
 
 DROP TABLE IF EXISTS auth.users;
-
-DROP EXTENSION IF EXISTS pg_uuidv7;

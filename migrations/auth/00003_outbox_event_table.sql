@@ -2,7 +2,7 @@
 CREATE SCHEMA IF NOT EXISTS outbox;
 
 CREATE TABLE IF NOT EXISTS outbox.event (
-    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
+    uuid UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     version TEXT NOT NULL,
     user_uuid UUID NOT NULL ,
     user_email TEXT NOT NULL,

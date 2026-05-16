@@ -9,12 +9,11 @@ import (
 )
 
 type Config struct {
-	User     string `env:"USER" env-prefix:"POSTGRES_" env-required`
-	Password string `env:"PASSWORD" env-prefix:"POSTGRES_" env-required`
-	Host     string `env:"HOST" env-prefix:"POSTGRES_" env-required`
-	Port     string `env:"PORT" env-prefix:"POSTGRES_" env-required`
-	DBName   string `env:"DBNAME" env-prefix:"POSTGRES_" env-required`
-	// SslTls	string
+	User     string `env:"USER" env-required`
+	Password string `env:"PASSWORD" env-required`
+	Host     string `env:"HOST" env-required`
+	Port     string `env:"PORT" env-required`
+	DBName   string `env:"DBNAME" env-required`
 }
 
 type DBTX interface {

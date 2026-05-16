@@ -8,9 +8,9 @@ import (
 )
 
 type Config struct {
-	App           config.App
-	Postgres      postgres.Config
-	KafkaConsumer kafka_consume.Config
+	App           config.App           `env-prefix:"APP_"`
+	Postgres      postgres.Config      `env-prefix:"POSTGRES_"`
+	KafkaConsumer kafka_consume.Config `env-prefix:"KAFKA_CONSUMER_"`
 }
 
 func MustLoad() *Config {

@@ -8,11 +8,11 @@ import (
 )
 
 type Config struct {
-	App                config.App
-	WorkerFrequencySec int `env:"WORKER_FREQUENCY_SEC" env-prefix:"APP_" env-required`
-	BatchSize          int `env:"BATCH_SIZE" env-prefix:"APP_" env-required`
-	Postgres           postgres.Config
-	KafkaProducer      kafka_produce.Config
+	App                config.App           `env-prefix:"APP_"`
+	WorkerFrequencySec int                  `env:"APP_WORKER_FREQUENCY_SEC" env-required`
+	BatchSize          int                  `env:"APP_BATCH_SIZE" env-required`
+	Postgres           postgres.Config      `env-prefix:"POSTGRES_"`
+	KafkaProducer      kafka_produce.Config `env-prefix:"KAFKA_PRODUCER_"`
 }
 
 func MustLoad() *Config {

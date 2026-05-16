@@ -12,9 +12,9 @@ import (
 )
 
 type Config struct {
-	App      config.App
-	Migrator migrator.Config
-	Postgres postgres.Config
+	App      config.App      `env-prefix:"APP_"`
+	Migrator migrator.Config `env-prefix:"MIGRATIONS_"`
+	Postgres postgres.Config `env-prefix:"POSTGRES_"`
 }
 
 func mustLoad() *Config {

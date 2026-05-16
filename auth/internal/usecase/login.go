@@ -51,7 +51,7 @@ func (a *auth) Login(ctx context.Context, email, password string) (string, strin
 		return "", "", fmt.Errorf("%s: %w", op, err)
 	}
 
-	_, err = a.sessionRepo.SetToken(ctx, refreshTokenJti, refreshToken, a.config.Redis.TokenTtl)
+	_, err = a.sessionRepo.SetToken(ctx, fmt.Sprintf("sess:%s", refreshTokenJti), refreshToken, a.config.Redis.TokenTtl)
 	if err != nil {
 		log.Error("Failed to set token to db", logger.Error(err))
 

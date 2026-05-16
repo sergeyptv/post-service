@@ -43,7 +43,6 @@ func (a *auth) Register(ctx context.Context, user domain.User, password string) 
 			domain.UserRegisteredEvent{
 				Version:   "1.0",
 				UserUuid:  userUuid,
-				Username:  user.Username,
 				UserEmail: user.Email,
 			})
 		if terr != nil {

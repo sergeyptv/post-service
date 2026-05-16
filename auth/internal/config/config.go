@@ -2,6 +2,7 @@ package config
 
 import (
 	"crypto/rsa"
+	"fmt"
 	"os"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -15,12 +16,12 @@ import (
 )
 
 type Config struct {
-	App        config.App
-	Jwt        authJwt.ConfigSigner
-	Postgres   postgres.Config
-	Redis      redis.Config
-	HttpServer httpServer.Config
-	GrpcServer grpcServer.Config
+	App        config.App           `env-prefix:"APP_"`
+	Jwt        authJwt.ConfigSigner `env-prefix:"TOKEN_"`
+	Postgres   postgres.Config      `env-prefix:"POSTGRES_"`
+	Redis      redis.Config         `env-prefix:"REDIS_"`
+	HttpServer httpServer.Config    `env-prefix:"HTTP_"`
+	GrpcServer grpcServer.Config    `env-prefix:"GRPC_SERVER_"`
 }
 
 func MustLoad() *Config {
@@ -44,7 +45,7 @@ func mustParseRSAKeys(c authJwt.ConfigSigner) (*rsa.PrivateKey, *rsa.PublicKey) 
 
 	rsaPrivateKeyBytes, err := os.ReadFile(c.PrivateKeyPath)
 	if err != nil || len(rsaPrivateKeyBytes) == 0 {
-		panic("cannot read rsa private key")
+		panic(fmt.Sprintf("cannot read rsa private key %s\n", err))
 	}
 
 	rsaPrivateKey, err := jwt.ParseRSAPrivateKeyFromPEM(rsaPrivateKeyBytes)

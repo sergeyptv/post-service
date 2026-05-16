@@ -14,7 +14,7 @@ import (
 	"github.com/sergeyptv/post_service/auth/internal/config"
 	"github.com/sergeyptv/post_service/auth/internal/crypto/jwt"
 	"github.com/sergeyptv/post_service/auth/internal/delivery/grpc"
-	http3 "github.com/sergeyptv/post_service/auth/internal/delivery/http"
+	http2 "github.com/sergeyptv/post_service/auth/internal/delivery/http"
 	"github.com/sergeyptv/post_service/auth/internal/repository/postgres"
 	"github.com/sergeyptv/post_service/auth/internal/repository/redis"
 	"github.com/sergeyptv/post_service/auth/internal/usecase"
@@ -62,8 +62,8 @@ func appRun(log *slog.Logger, cfg *config.Config) error {
 
 	authUsecase := usecase.NewAuthUsecase(log, cfg, postgresUserRepository, postgresOutboxRepository, redisSessionRepository, jwtTokenSigner, txWrapper)
 
-	httpHandler := http3.NewHandler(log, cfg.Redis, redisRateLimitRepository, authUsecase)
-	httpRouter := http3.NewRouter(httpHandler)
+	httpHandler := http2.NewHandler(log, cfg.Redis, redisRateLimitRepository, authUsecase)
+	httpRouter := http2.NewRouter(httpHandler)
 
 	authHttpServer := http_server.New(httpRouter.Mux, cfg.HttpServer)
 	defer authHttpServer.Close()

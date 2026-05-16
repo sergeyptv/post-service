@@ -9,7 +9,7 @@ import (
 )
 
 type Config struct {
-	MigrationsDir string `env:"DIR" env-prefix:"MIGRATIONS_" env-required`
+	MigrationsDir string `env:"DIR" env-required`
 }
 
 func Up(dir, dsn string) error {

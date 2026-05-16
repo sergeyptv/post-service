@@ -8,9 +8,9 @@ import (
 )
 
 type Config struct {
-	Host        string        `env:"HOST" env-prefix:"GRPC_CLIENT_" env-required`
-	Port        string        `env:"PORT" env-prefix:"GRPC_CLIENT_" env-required`
-	IdleTimeout time.Duration `env:"IDLE_TIMEOUT" env-prefix:"GRPC_CLIENT_" env-required`
+	Host        string        `env:"HOST" env-required`
+	Port        string        `env:"PORT" env-required`
+	IdleTimeout time.Duration `env:"IDLE_TIMEOUT" env-required`
 }
 
 type Client struct {

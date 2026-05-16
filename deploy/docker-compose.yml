@@ -256,7 +256,7 @@ services:
       auth:
         condition: service_started
     ports:
-      - "8082:8082"
+      - "8081:8081"
     restart: unless-stopped
     networks:
       - post-service-network
